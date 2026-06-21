@@ -1,30 +1,35 @@
-name: ai_find_base
-description: "AI Find Base"
-publish_to: 'none'
+workflows:
+  ios-workflow:
+    name: AI Find Base iOS
 
-version: 1.0.0+1
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
 
-environment:
-  sdk: ^3.11.5
+    instance_type: mac_mini_m2
 
-dependencies:
-  flutter:
-    sdk: flutter
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
 
-  http: ^1.2.2
-  image_picker: ^1.1.2
-  shared_preferences: ^2.3.2
-  url_launcher: ^6.3.1
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.cocbase.aifindbase
 
-dev_dependencies:
-  flutter_test:
-    sdk: flutter
+    scripts:
+      - name: Flutter pub get
+        script: flutter pub get
 
-  flutter_lints: ^6.0.0
+      - name: Set up iOS code signing
+        script: xcode-project use-profiles
 
-flutter:
-  uses-material-design: true
+      - name: Build IPA
+        script: flutter build ipa --release
 
-  assets:
-    - assets/bg_ai_finder.png
-    - assets/ic_header_logo.png
+    artifacts:
+      - build/ios/ipa/*.ipa
