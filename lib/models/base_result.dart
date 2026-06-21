@@ -21,20 +21,6 @@ class BaseResult {
     required this.accessLink,
     required this.premium,
     required this.score,
-    Map<String, dynamic> toJson() {
-    return {
-    'title': title,
-    'level': level,
-    'baseType': baseType,
-    'style': style,
-    'defense': defense,
-    'image': image,
-    'postUrl': postUrl,
-    'accessLink': accessLink,
-    'premium': premium,
-    'score': score,
-    };
-    }
   });
 
   factory BaseResult.fromJson(Map<String, dynamic> json) {
@@ -50,5 +36,20 @@ class BaseResult {
       premium: json['premium'] == true,
       score: (json['score'] ?? 0).toDouble(),
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'title': title,
+      'level': level,
+      'baseType': baseType,
+      'style': style,
+      'defense': defense,
+      'image': image,
+      'postUrl': postUrl,
+      'accessLink': accessLink,
+      'premium': premium,
+      'score': score,
+    };
   }
 }
