@@ -1,0 +1,36 @@
+workflows:
+  ios-workflow:
+    name: AI Find Base iOS
+
+    triggering:
+      events:
+        - push
+
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+
+    instance_type: mac_mini_m2
+
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.cocbase.aifindbase
+
+    scripts:
+      - name: Flutter pub get
+        script: flutter pub get
+
+      - name: Set up iOS code signing
+        script: xcode-project use-profiles
+
+      - name: Build IPA
+        script: flutter build ipa --release --export-options-plist=ios/export_options.plist
+
+    artifacts:
+      - build/ios/ipa/*.ipa
