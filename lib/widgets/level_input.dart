@@ -1,12 +1,21 @@
 import 'package:flutter/material.dart';
 
 class LevelInput extends StatelessWidget {
-  final TextEditingController controller;
+  final String? selectedLevel;
+  final ValueChanged<String?> onChanged;
 
   const LevelInput({
     super.key,
-    required this.controller,
+    required this.selectedLevel,
+    required this.onChanged,
   });
+
+  static const List<String> levels = [
+    'TH3', 'TH4', 'TH5', 'TH6', 'TH7', 'TH8', 'TH9',
+    'TH10', 'TH11', 'TH12', 'TH13', 'TH14', 'TH15', 'TH16', 'TH17', 'TH18',
+    'BH4', 'BH5', 'BH6', 'BH7', 'BH8', 'BH9', 'BH10',
+    'CH1', 'CH2', 'CH3', 'CH4', 'CH5', 'CH6', 'CH7', 'CH8', 'CH9', 'CH10',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -14,47 +23,32 @@ class LevelInput extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Town Hall / Builder Hall / Capital Hall',
+          'Choose Base Level',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 14,
           ),
         ),
         const SizedBox(height: 8),
-        TextField(
-          controller: controller,
-          textCapitalization: TextCapitalization.characters,
+        DropdownButtonFormField<String>(
+          value: selectedLevel,
+          isExpanded: true,
+          dropdownColor: const Color(0xFF1F2937),
           decoration: InputDecoration(
-            hintText: 'Optional: TH18, TH17, BH10, CH10...',
-            hintStyle: const TextStyle(
-              color: Color(0xFF9CA3AF),
-              fontSize: 14,
-            ),
+            hintText: 'Required: TH18, BH10, CH10...',
             filled: true,
             fillColor: const Color(0xFF1F2937),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 14,
-            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: Colors.white.withOpacity(0.08),
-              ),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: Colors.white.withOpacity(0.08),
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(
-                color: Color(0xFFFACC15),
-              ),
             ),
           ),
+          items: levels.map((level) {
+            return DropdownMenuItem(
+              value: level,
+              child: Text(level),
+            );
+          }).toList(),
+          onChanged: onChanged,
         ),
       ],
     );
