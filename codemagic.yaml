@@ -37,8 +37,6 @@ workflows:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.cocbase.aifindbase
-        provisioning_profiles:
-          - aifindbase_appstore
 
     scripts:
       - flutter pub get
