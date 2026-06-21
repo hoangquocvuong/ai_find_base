@@ -1,36 +1,48 @@
-android-workflow:
-  name: AI Find Base Android
-  triggering:
-    events:
-      - push
-    branch_patterns:
-      - pattern: main
-        include: true
-        source: true
+workflows:
+  android-workflow:
+    name: AI Find Base Android
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+
+    environment:
+      flutter: stable
+
+    scripts:
+      - flutter pub get
+      - flutter build appbundle --release
+
+    artifacts:
+      - build/app/outputs/bundle/release/*.aab
 
 
+  ios-workflow:
+    name: AI Find Base iOS
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
 
-  workflows:
-    ios-workflow:
-      name: AI Find Base iOS
-      triggering:
-        events:
-          - push
-        branch_patterns:
-          - pattern: main
-            include: true
-            source: true
+    instance_type: mac_mini_m2
 
-      instance_type: mac_mini_m2
-      environment:
-        flutter: stable
-        ios_signing:
-          distribution_type: app_store
-          bundle_identifier: com.cocbase.aifindbase
-          provisioning_profiles:
-            - aifindbase_appstore
-      scripts:
-        - flutter pub get
-        - flutter build ipa --release
-      artifacts:
-        - build/ios/ipa/*.ipa
+    environment:
+      flutter: stable
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.cocbase.aifindbase
+        provisioning_profiles:
+          - aifindbase_appstore
+
+    scripts:
+      - flutter pub get
+      - flutter build ipa --release
+
+    artifacts:
+      - build/ios/ipa/*.ipa
