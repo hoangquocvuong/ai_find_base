@@ -935,37 +935,72 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
+          const SizedBox(height: 14),
+
+          buildAdBanner(),
+
           const SizedBox(height: 12),
+
           Row(
             children: [
               Expanded(
                 child: Text(
-                  'Watch Ad = +2\n Premium = Unlimited',
+                  '▶ Watch Ad = +2 free searches',
+
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.86),
-                    height: 1.35,
+                    color: Colors.white.withOpacity(.8),
                     fontSize: 13,
                   ),
                 ),
               ),
+
               const SizedBox(width: 10),
+
               ElevatedButton.icon(
                 onPressed: watchAdMock,
-                icon: const Icon(Icons.play_arrow_rounded),
-                label: const Text('Watch Ad (+2)'),
+
+                icon: const Icon(
+                  Icons.play_arrow_rounded,
+                ),
+
+                label: const Text(
+                  'Watch Ad (+2)',
+                ),
+
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF7C3AED),
+                  backgroundColor: const Color(
+                    0xFF7C3AED,
+                  ),
+
                   foregroundColor: Colors.white,
+
                   padding: const EdgeInsets.symmetric(
                     horizontal: 14,
                     vertical: 11,
                   ),
+
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius:
+                    BorderRadius.circular(16),
                   ),
                 ),
               ),
             ],
+          ),
+
+          const SizedBox(height: 10),
+
+          Align(
+            alignment: Alignment.centerLeft,
+
+            child: Text(
+              '👑 Premium = Unlimited',
+
+              style: TextStyle(
+                color: Colors.white.withOpacity(.8),
+                fontSize: 13,
+              ),
+            ),
           ),
         ],
       ),
@@ -1014,47 +1049,49 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _premiumStatBlock() {
     return InkWell(
+      borderRadius: BorderRadius.circular(14),
+
       onTap: showPremiumPopup,
-      borderRadius: BorderRadius.circular(16),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-        child: Column(
-          children: [
-            const Text(
-              'Premium',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                color: Color(0xFFD1D5DB),
-                fontWeight: FontWeight.w700,
-              ),
+
+      child: Column(
+        children: [
+          const Text(
+            'Premium',
+
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
             ),
-            const SizedBox(height: 6),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                isSubscriber ? 'ACTIVE' : 'UNLIMITED',
-                maxLines: 1,
-                style: TextStyle(
-                  fontSize: isSubscriber ? 22 : 20,
-                  fontWeight: FontWeight.w900,
-                  color: isSubscriber
-                      ? const Color(0xFF22C55E)
-                      : const Color(0xFFFACC15),
-                ),
-              ),
+          ),
+
+          const SizedBox(height: 6),
+
+          Text(
+            isSubscriber
+                ? 'Unlimited'
+                : 'Unlimited',
+
+            textAlign: TextAlign.center,
+
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFFFACC15),
             ),
-            const SizedBox(height: 4),
-            Text(
-              isSubscriber ? 'enabled' : 'tap to upgrade',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 11,
-                color: Color(0xFFCBD5E1),
-              ),
+          ),
+
+          const SizedBox(height: 4),
+
+          Text(
+            'tap to upgrade',
+
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.white.withOpacity(.65),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -1585,34 +1622,32 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
-                Positioned(
-                  left: 12,
-                  right: 12,
-                  bottom: 12,
-                  child: Text(
-                    item.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 17,
-                      height: 1.15,
-                      fontWeight: FontWeight.w900,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black,
-                          blurRadius: 8,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
 
           const SizedBox(height: 10),
+          Text(
 
+            item.title,
+
+            maxLines: 1,
+
+            overflow: TextOverflow.ellipsis,
+
+            style: const TextStyle(
+
+              fontSize: 16,
+
+              fontWeight: FontWeight.w800,
+
+              color: Colors.white,
+
+            ),
+
+          ),
+
+          const SizedBox(height:8),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -1913,11 +1948,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   AppHeader(totalBases: totalBases),
                   const SizedBox(height: 18),
                   buildStatsPanel(),
-                  const SizedBox(height: 10),
-                  buildAdBanner(),
-                  const SizedBox(height: 10),
+
+                  const SizedBox(height: 12),
+
                   buildFeatureBanner(),
-                  const SizedBox(height: 16),
                   ImagePickerBox(image: selectedImage),
                   const SizedBox(height: 12),
                   ActionButtons(
