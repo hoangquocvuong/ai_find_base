@@ -534,43 +534,87 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void showPremiumPopup() {
+    ProductDetails? monthly;
+    ProductDetails? yearly;
+
+    for (final product in subscriptionProducts) {
+      if (product.id == 'premium_monthly') {
+        monthly = product;
+      }
+
+      if (product.id == 'premium_yearly') {
+        yearly = product;
+      }
+    }
+
     showDialog(
       context: context,
       builder: (_) {
         return AlertDialog(
-          title: const Text('👑 AI Find Base Premium'),
+          backgroundColor: const Color(0xFF111827),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+          ),
+          title: const Text(
+            '👑 AI Find Base Premium',
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+            ),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                'Unlock unlimited AI searches.\n\n'
+                'Unlock the full AI search experience.\n\n'
                     '✓ Unlimited AI searches\n'
-                    '✓ No rewarded ads\n'
-                    '✓ Faster experience',
+                    '✓ Remove ads\n'
+                    '✓ Faster experience\n'
+                    '✓ Priority AI base matching',
+                style: TextStyle(
+                  height: 1.35,
+                ),
               ),
-              const SizedBox(height: 16),
+
+              const SizedBox(height: 18),
 
               if (subscriptionProducts.isEmpty)
-                const Text(
-                  'Loading subscription packages...',
-                  style: TextStyle(fontSize: 13),
-                ),
-
-              ...subscriptionProducts.map((product) {
-                return Container(
-                  width: double.infinity,
-                  margin: const EdgeInsets.only(bottom: 10),
-                  child: FilledButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      buySubscription(product);
-                    },
-                    child: Text(
-                      '${product.title} • ${product.price}',
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    'Loading subscription packages...',
+                    style: TextStyle(
+                      color: Color(0xFFCBD5E1),
+                      fontSize: 13,
                     ),
                   ),
-                );
-              }),
+                ),
+
+              if (monthly != null)
+                _subscriptionButton(
+                  title: 'Monthly',
+                  subtitle: 'Flexible monthly access',
+                  price: monthly.price,
+                  badge: null,
+                  onTap: () {
+                    Navigator.pop(context);
+                    buySubscription(monthly!);
+                  },
+                ),
+
+              if (yearly != null)
+                _subscriptionButton(
+                  title: 'Yearly',
+                  subtitle: 'Best value for long-term use',
+                  price: yearly.price,
+                  badge: 'SAVE MORE',
+                  highlighted: true,
+                  onTap: () {
+                    Navigator.pop(context);
+                    buySubscription(yearly!);
+                  },
+                ),
+
+              const SizedBox(height: 8),
 
               TextButton(
                 onPressed: () {
@@ -592,7 +636,102 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-
+  Widget _subscriptionButton({
+    required String title,
+    required String subtitle,
+    required String price,
+    required VoidCallback onTap,
+    String? badge,
+    bool highlighted = false,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: highlighted
+              ? const Color(0xFFFACC15)
+              : const Color(0xFF1F2937),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: highlighted
+                ? const Color(0xFFFACC15)
+                : Colors.white.withOpacity(0.12),
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          color: highlighted ? Colors.black : Colors.white,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      if (badge != null) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: highlighted
+                                ? Colors.black
+                                : const Color(0xFFFACC15),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            badge,
+                            style: TextStyle(
+                              color: highlighted
+                                  ? const Color(0xFFFACC15)
+                                  : Colors.black,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: highlighted
+                          ? Colors.black.withOpacity(0.72)
+                          : const Color(0xFFCBD5E1),
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              price,
+              style: TextStyle(
+                color: highlighted ? Colors.black : const Color(0xFFFACC15),
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
   Future<void> searchSimilarBases() async {
     if (selectedImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1306,7 +1445,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          like ? '👍 Thanks for your feedback' : '👎 Thanks for your feedback',
+          like ? '👍 Thanks! Your feedback helps improve AI search results' : '👎 Thanks! We will improve future AI results',
         ),
       ),
     );
