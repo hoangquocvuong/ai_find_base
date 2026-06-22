@@ -37,3 +37,14 @@ flutter:
     - assets/bg_ai_finder.png
     - assets/ic_header_logo.png
     - assets/app_icon.png
+      
+flutter:
+  config:
+    enable-swift-package-manager: false
+
+  uses-material-design: true
+
+  assets:
+    - assets/bg_ai_finder.png
+    - assets/ic_header_logo.png
+    - assets/app_icon.png
