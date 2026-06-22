@@ -64,13 +64,7 @@ class AppHeader extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 14),
-        Row(
-          children: [
-            _Badge(text: '$totalBases+ Bases'),
-            const SizedBox(width: 8),
-            const _Badge(text: 'TH • BH • CH'),
-          ],
-        ),
+        
       ],
     );
   }

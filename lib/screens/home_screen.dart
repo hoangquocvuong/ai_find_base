@@ -65,13 +65,13 @@ class _HomeScreenState extends State<HomeScreen> {
   };
 
   static const String iosBannerAdUnitId =
-      'ca-app-pub-9371341402256787/4621781605';
+      'ca-app-pub-3940256099942544/2934735716';
 
   static const String iosInterstitialAdUnitId =
-      'ca-app-pub-9371341402256787/2615399517';
+      'ca-app-pub-3940256099942544/4411468910';
 
   static const String iosRewardedAdUnitId =
-      'ca-app-pub-9371341402256787/2152365082';
+      'ca-app-pub-3940256099942544/1712485313';
 
   @override
   void initState() {
@@ -238,12 +238,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void loadBannerAd() {
+    bannerAd?.dispose();
+
     bannerAd = BannerAd(
       adUnitId: iosBannerAdUnitId,
       size: AdSize.banner,
       request: const AdRequest(),
       listener: BannerAdListener(
         onAdLoaded: (_) {
+          debugPrint('Banner loaded');
+
           if (!mounted) return;
 
           setState(() {
@@ -251,7 +255,10 @@ class _HomeScreenState extends State<HomeScreen> {
           });
         },
         onAdFailedToLoad: (ad, error) {
-          debugPrint('AdMob banner failed: ${error.message}');
+          debugPrint(
+            'Banner failed: code=${error.code}, domain=${error.domain}, message=${error.message}',
+          );
+
           ad.dispose();
 
           if (!mounted) return;
@@ -287,12 +294,25 @@ class _HomeScreenState extends State<HomeScreen> {
       request: const AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (ad) {
+          debugPrint('Rewarded loaded');
           rewardedAd = ad;
           rewardedReady = true;
+
+          if (mounted) {
+            setState(() {});
+          }
         },
         onAdFailedToLoad: (error) {
-          debugPrint('Rewarded failed: ${error.message}');
+          debugPrint(
+            'Rewarded failed: code=${error.code}, domain=${error.domain}, message=${error.message}',
+          );
+
+          rewardedAd = null;
           rewardedReady = false;
+
+          if (mounted) {
+            setState(() {});
+          }
         },
       ),
     );
@@ -326,13 +346,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void showRewardAd() {
     if (!rewardedReady || rewardedAd == null) {
+      loadRewardedAd();
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Ad is loading. Please try again in a moment.'),
+          content: Text('Ad is still loading. Please try again in a few seconds.'),
         ),
       );
 
-      loadRewardedAd();
       return;
     }
 
@@ -342,7 +363,11 @@ class _HomeScreenState extends State<HomeScreen> {
     rewardedReady = false;
 
     ad.fullScreenContentCallback = FullScreenContentCallback(
+      onAdShowedFullScreenContent: (ad) {
+        debugPrint('Rewarded ad showed');
+      },
       onAdDismissedFullScreenContent: (ad) {
+        debugPrint('Rewarded ad dismissed');
         ad.dispose();
         loadRewardedAd();
       },
@@ -351,14 +376,17 @@ class _HomeScreenState extends State<HomeScreen> {
         ad.dispose();
         loadRewardedAd();
 
+        if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ad failed: ${error.message}')),
+          SnackBar(content: Text('Ad failed to show: ${error.message}')),
         );
       },
     );
 
     ad.show(
       onUserEarnedReward: (ad, reward) async {
+        debugPrint('Reward earned: ${reward.amount} ${reward.type}');
         await rewardSuccess();
       },
     );
@@ -504,7 +532,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     showPremiumPopup();
   }
-  
+
   void showPremiumPopup() {
     showDialog(
       context: context,
@@ -910,10 +938,35 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget buildAdBanner() {
     if (!bannerReady || bannerAd == null) {
-      return const SizedBox.shrink();
+      return Container(
+        width: double.infinity,
+        height: 50,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: const Color(0xFF111827).withOpacity(0.65),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.08),
+          ),
+        ),
+        child: const Text(
+          'Ad loading...',
+          style: TextStyle(
+            color: Color(0xFFCBD5E1),
+            fontSize: 13,
+          ),
+        ),
+      );
     }
 
-    return Center(
+    return Container(
+      width: double.infinity,
+      height: bannerAd!.size.height.toDouble(),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: const Color(0xFF020617).withOpacity(0.35),
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: SizedBox(
         width: bannerAd!.size.width.toDouble(),
         height: bannerAd!.size.height.toDouble(),
