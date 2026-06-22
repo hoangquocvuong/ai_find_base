@@ -1617,37 +1617,31 @@ class _HomeScreenState extends State<HomeScreen> {
     final isPremium = item.premium == true;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 22),
+      padding: const EdgeInsets.only(bottom: 26),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(16),
-            child: Stack(
-              children: [
-                Image.network(
-                  item.image,
+            child: Image.network(
+              item.image,
+              height: 215,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) {
+                return Container(
                   height: 215,
                   width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) {
-                    return Container(
-                      height: 215,
-                      width: double.infinity,
-                      color: const Color(0xFF1F2937),
-                      child: const Center(
-                        child: Text('Image not available'),
-                      ),
-                    );
-                  },
-                ),
-              ],
+                  color: const Color(0xFF1F2937),
+                  child: const Center(
+                    child: Text('Image not available'),
+                  ),
+                );
+              },
             ),
           ),
 
           const SizedBox(height: 10),
-
-          const SizedBox(height: 8),
 
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -1655,7 +1649,9 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 _resultMetaText(
                   isPremium ? '👑 Premium' : '✅ Free',
-                  color: isPremium ? const Color(0xFFFACC15) : const Color(0xFF22C55E),
+                  color: isPremium
+                      ? const Color(0xFFFACC15)
+                      : const Color(0xFF22C55E),
                   bold: true,
                 ),
                 _dot(),
@@ -1673,11 +1669,75 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
+
+          const SizedBox(height: 12),
+
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton(
+                  onPressed: () => openBase(item),
+                  child: const Text('Open Base'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: () => saveBase(item),
+                icon: Icon(
+                  saved
+                      ? Icons.bookmark_rounded
+                      : Icons.bookmark_border_rounded,
+                ),
+                color: saved ? const Color(0xFFFACC15) : Colors.white70,
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 10),
+
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => feedbackBase(item, true),
+                  icon: Icon(
+                    Icons.thumb_up_rounded,
+                    color: liked ? const Color(0xFF22C55E) : Colors.white70,
+                  ),
+                  label: const Text('Helpful'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor:
+                    liked ? const Color(0xFF22C55E) : Colors.white,
+                    side: BorderSide(
+                      color: liked ? const Color(0xFF22C55E) : Colors.white24,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => feedbackBase(item, false),
+                  icon: Icon(
+                    Icons.thumb_down_rounded,
+                    color: disliked ? const Color(0xFFEF4444) : Colors.white70,
+                  ),
+                  label: const Text('Not Accurate'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor:
+                    disliked ? const Color(0xFFEF4444) : Colors.white,
+                    side: BorderSide(
+                      color: disliked ? const Color(0xFFEF4444) : Colors.white24,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
-
   Widget _resultMetaText(
       String text, {
         Color color = const Color(0xFFE5E7EB),
