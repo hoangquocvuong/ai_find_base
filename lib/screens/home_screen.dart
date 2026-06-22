@@ -935,85 +935,136 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 24),
 
           buildAdBanner(),
 
-          const SizedBox(height: 6),
+          const SizedBox(height: 20),
 
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+
               Expanded(
-                child: Transform.translate(
-                  offset: const Offset(0, -10),
-                  child: Text(
-                    '▶ Watch Ad = +2 free searches',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(.82),
-                      fontSize: 13,
-                      height: 1.0,
+
+                child: Column(
+
+                  crossAxisAlignment:
+                  CrossAxisAlignment.start,
+
+                  mainAxisAlignment:
+                  MainAxisAlignment.center,
+
+                  children: [
+
+                    Text(
+
+                      '▶ Watch Ad = +2 free searches',
+
+                      maxLines: 1,
+
+                      overflow:
+                      TextOverflow.ellipsis,
+
+                      style: TextStyle(
+
+                        color:
+                        Colors.white.withOpacity(.82),
+
+                        fontSize: 13,
+
+                        height: 1.0,
+
+                      ),
+
                     ),
-                  ),
+
+                    const SizedBox(height: 1),
+
+                    Text(
+
+                      '👑 Premium = Unlimited',
+
+                      style: TextStyle(
+
+                        color:
+                        Colors.white.withOpacity(.82),
+
+                        fontSize: 13,
+
+                        height: 1.0,
+
+                      ),
+
+                    ),
+
+                  ],
+
                 ),
+
               ),
-              const SizedBox(width: 10),
+
+              const SizedBox(width: 12),
+
               SizedBox(
-                height: 44,
+
+                height: 46,
+
                 child: ElevatedButton.icon(
+
                   onPressed: watchAdMock,
-                  icon: const Icon(Icons.play_arrow_rounded, size: 18),
+
+                  icon: const Icon(
+
+                    Icons.play_arrow_rounded,
+
+                    size: 18,
+
+                  ),
+
                   label: const Text(
+
                     'Watch Ad (+2)',
+
                     style: TextStyle(
+
                       fontSize: 14,
-                      fontWeight: FontWeight.w800,
+
+                      fontWeight:
+                      FontWeight.w800,
+
                     ),
+
                   ),
+
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF7C3AED),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+
+                    backgroundColor:
+                    const Color(0xFF7C3AED),
+
+                    foregroundColor:
+                    Colors.white,
+
+                    padding:
+                    const EdgeInsets.symmetric(
+                      horizontal: 14,
                     ),
+
+                    shape: RoundedRectangleBorder(
+
+                      borderRadius:
+                      BorderRadius.circular(16),
+
+                    ),
+
                   ),
+
                 ),
+
               ),
+
             ],
-          ),
 
-          const SizedBox(height: 2),
-
-          Transform.translate(
-            offset: const Offset(0, -6),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                '👑 Premium = No Ads',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(.82),
-                  fontSize: 13,
-                  height: 1.0,
-                ),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              '👑 Premium = No',
-              style: TextStyle(
-                color: Colors.white.withOpacity(.82),
-                fontSize: 13,
-                height: 1.0,
-              ),
-            ),
           ),
         ],
       ),
@@ -1082,8 +1133,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
           Text(
             isSubscriber
-                ? 'Unlimited'
-                : 'Unlimited',
+                ? 'No Ads'
+                : 'No Ads',
 
             textAlign: TextAlign.center,
 
@@ -1681,28 +1732,47 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 10),
               Expanded(
                 child: GridView.builder(
+                  padding: const EdgeInsets.only(
+                    top: 8,
+                    bottom: 24,
+                    left: 4,
+                    right: 4,
+                  ),
                   itemCount: savedBases.length,
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 18,
+                    mainAxisSpacing: 18,
+                    childAspectRatio: 1.05,
                   ),
                   itemBuilder: (_, index) {
                     final item = savedBases[index];
 
                     return GestureDetector(
                       onTap: () => openBase(item),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(14),
-                        child: Image.network(
-                          item.image,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) {
-                            return Container(
-                              color: const Color(0xFF1F2937),
-                              child: const Icon(Icons.image_not_supported),
-                            );
-                          },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.28),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Image.network(
+                            item.image,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) {
+                              return Container(
+                                color: const Color(0xFF1F2937),
+                                child: const Icon(Icons.image_not_supported),
+                              );
+                            },
+                          ),
                         ),
                       ),
                     );
