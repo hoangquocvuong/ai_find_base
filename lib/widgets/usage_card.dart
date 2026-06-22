@@ -71,7 +71,7 @@ class UsageCard extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         const Text(
-          '▶ Watch Ad = +2 free searches\n👑 Premium = Unlimited',
+          'Watch Ad = +2 free searches\n Premium = Unlimited',
           style: TextStyle(
             color: Color(0xFFD1D5DB),
             fontSize: 12,
