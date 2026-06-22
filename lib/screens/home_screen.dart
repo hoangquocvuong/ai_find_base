@@ -939,14 +939,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
           buildAdBanner(),
 
-          const SizedBox(height: 10),
+          const SizedBox(height: 6),
 
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
-                child: Align(
-                  alignment: Alignment.centerLeft,
+                child: Transform.translate(
+                  offset: const Offset(0, -10),
                   child: Text(
                     '▶ Watch Ad = +2 free searches',
                     maxLines: 1,
@@ -985,12 +985,29 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
 
+          const SizedBox(height: 2),
+
+          Transform.translate(
+            offset: const Offset(0, -6),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '👑 Premium = No Ads',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(.82),
+                  fontSize: 13,
+                  height: 1.0,
+                ),
+              ),
+            ),
+          ),
+
           const SizedBox(height: 12),
 
           Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              '👑 Premium = Unlimited',
+              '👑 Premium = No',
               style: TextStyle(
                 color: Colors.white.withOpacity(.82),
                 fontSize: 13,
