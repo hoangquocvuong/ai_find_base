@@ -616,6 +616,31 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 8),
 
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      launchUrl(
+                        Uri.parse('https://www.cocbasepro.com/p/privacy-policy.html'),
+                        mode: LaunchMode.externalApplication,
+                      );
+                    },
+                    child: const Text('Privacy Policy'),
+                  ),
+                  const Text('|'),
+                  TextButton(
+                    onPressed: () {
+                      launchUrl(
+                        Uri.parse('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/'),
+                        mode: LaunchMode.externalApplication,
+                      );
+                    },
+                    child: const Text('Terms of Use'),
+                  ),
+                ],
+              ),
+
               TextButton(
                 onPressed: () {
                   Navigator.pop(context);
@@ -979,7 +1004,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     ),
 
-                    const SizedBox(height: 1),
+                    const SizedBox(height: 2),
 
                     Text(
 
@@ -1801,17 +1826,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 onTap: () => Navigator.pop(context),
               ),
               ListTile(
-                leading: const Icon(Icons.favorite_rounded),
-                title: const Text('Donate'),
-                onTap: () {
-                  Navigator.pop(context);
-                  launchUrl(
-                    Uri.parse('https://buymeacoffee.com/cocbase'),
-                    mode: LaunchMode.externalApplication,
-                  );
-                },
-              ),
-              ListTile(
                 leading: const Icon(Icons.email_rounded),
                 title: const Text('Contact'),
                 onTap: () {
@@ -1877,10 +1891,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 18),
                   buildStatsPanel(),
 
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 26),
 
                   buildFeatureBanner(),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 30),
                   ImagePickerBox(image: selectedImage),
                   ActionButtons(
                     onChoose: pickImage,
