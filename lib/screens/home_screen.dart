@@ -1521,6 +1521,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final liked = likedBases.contains(item.postUrl);
     final disliked = dislikedBases.contains(item.postUrl);
+    final isPremium = item.premium == true;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -1664,9 +1665,29 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 4),
           Text(
             '${item.level} • ${item.baseType} • ${item.style}',
+
             style: const TextStyle(
               color: Color(0xFFD1D5DB),
               fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: isPremium
+                  ? const Color(0xFFFACC15)
+                  : const Color(0xFF22C55E),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              isPremium ? '👑 PREMIUM BASE' : '✅ FREE BASE',
+              style: TextStyle(
+                color: isPremium ? Colors.black : Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
           const SizedBox(height: 10),
