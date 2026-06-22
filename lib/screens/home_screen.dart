@@ -1451,6 +1451,66 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget buildAnalysisProgressCard() {
+    if (!loading) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF111827).withOpacity(0.94),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: const Color(0xFFA855F7).withOpacity(0.35),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: const Color(0xFF7C3AED).withOpacity(0.20),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Padding(
+              padding: EdgeInsets.all(11),
+              child: CircularProgressIndicator(
+                strokeWidth: 3,
+                color: Color(0xFFFACC15),
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Analyzing base image...',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'AI is comparing layouts, level and visual structure.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFFCBD5E1),
+                    height: 1.25,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget buildResultCard(BaseResult item) {
     final percent =
     item.score <= 1 ? (item.score * 100).round() : item.score.round();
@@ -1474,21 +1534,115 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(14),
-            child: Image.network(
-              item.image,
-              height: 190,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) {
-                return Container(
-                  height: 190,
+            child: Stack(
+              children: [
+                Image.network(
+                  item.image,
+                  height: 210,
                   width: double.infinity,
-                  color: const Color(0xFF1F2937),
-                  child: const Center(
-                    child: Text('Image not available'),
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) {
+                    return Container(
+                      height: 210,
+                      width: double.infinity,
+                      color: const Color(0xFF1F2937),
+                      child: const Center(
+                        child: Text('Image not available'),
+                      ),
+                    );
+                  },
+                ),
+
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withOpacity(0.10),
+                          Colors.black.withOpacity(0.70),
+                        ],
+                      ),
+                    ),
                   ),
-                );
-              },
+                ),
+
+                Positioned(
+                  top: 10,
+                  left: 10,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.62),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: Colors.white24),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.star_rounded,
+                          color: Color(0xFFFACC15),
+                          size: 18,
+                        ),
+                        SizedBox(width: 4),
+                        Text(
+                          '4.8',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFACC15),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '$percent% Match',
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ),
+
+                Positioned(
+                  left: 12,
+                  right: 12,
+                  bottom: 12,
+                  child: Text(
+                    item.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      height: 1.15,
+                      fontWeight: FontWeight.w900,
+                      shadows: [
+                        Shadow(
+                          color: Colors.black,
+                          blurRadius: 8,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 10),
@@ -1771,9 +1925,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   buildLevelSelector(),
                   const SizedBox(height: 16),
                   SearchButton(
-                    loading: loading,
-                    onPressed: handleSearchLogic,
+                    loading: false,
+                    onPressed: loading ? null : handleSearchLogic,
                   ),
+
+                  const SizedBox(height: 12),
+
+                  buildAnalysisProgressCard(),
 
                   const SizedBox(height: 18),
                   const Text(
