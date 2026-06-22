@@ -880,15 +880,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final percent =
     maxCredit == 0 ? 0.0 : (safeLeft / maxCredit).clamp(0.0, 1.0);
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0F172A).withOpacity(0.86),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.10),
-        ),
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Column(
         children: [
           Row(
@@ -927,7 +920,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: LinearProgressIndicator(
                         minHeight: 8,
                         value: isSubscriber ? 1 : percent,
-                        backgroundColor: Colors.white.withOpacity(0.12),
+                        backgroundColor: Colors.white.withOpacity(0.18),
                         valueColor: const AlwaysStoppedAnimation<Color>(
                           Color(0xFFFACC15),
                         ),
@@ -942,16 +935,16 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
                 child: Text(
-                  '▶ Watch Ad = +2 free searches\n👑 Premium = Unlimited',
+                  'Watch Ad = +2\n Premium = Unlimited',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.82),
+                    color: Colors.white.withOpacity(0.86),
                     height: 1.35,
-                    fontSize: 14,
+                    fontSize: 13,
                   ),
                 ),
               ),
@@ -965,7 +958,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 14,
-                    vertical: 12,
+                    vertical: 11,
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -1077,100 +1070,74 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget buildAdBanner() {
     if (!bannerReady || bannerAd == null) {
-      return Container(
-        width: double.infinity,
+      return const SizedBox(
         height: 50,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: const Color(0xFF111827).withOpacity(0.65),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: Colors.white.withOpacity(0.08),
-          ),
-        ),
-        child: const Text(
-          'Ad loading...',
-          style: TextStyle(
-            color: Color(0xFFCBD5E1),
-            fontSize: 13,
+        child: Center(
+          child: Text(
+            'Ad loading...',
+            style: TextStyle(
+              color: Color(0xFFCBD5E1),
+              fontSize: 13,
+            ),
           ),
         ),
       );
     }
 
-    return Container(
+    return SizedBox(
       width: double.infinity,
       height: bannerAd!.size.height.toDouble(),
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: const Color(0xFF020617).withOpacity(0.35),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: SizedBox(
-        width: bannerAd!.size.width.toDouble(),
-        height: bannerAd!.size.height.toDouble(),
-        child: AdWidget(ad: bannerAd!),
+      child: Center(
+        child: SizedBox(
+          width: bannerAd!.size.width.toDouble(),
+          height: bannerAd!.size.height.toDouble(),
+          child: AdWidget(ad: bannerAd!),
+        ),
       ),
     );
   }
 
   Widget buildFeatureBanner() {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: LinearGradient(
-          colors: [
-            const Color(0xFF581C87).withOpacity(0.72),
-            const Color(0xFF0F172A).withOpacity(0.92),
-            const Color(0xFF075985).withOpacity(0.62),
-          ],
-        ),
-        border: Border.all(
-          color: const Color(0xFFA855F7).withOpacity(0.55),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: const Color(0xFF7C3AED).withOpacity(0.35),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(
-              Icons.auto_awesome_rounded,
-              color: Color(0xFFE9D5FF),
-              size: 28,
-            ),
+    return Row(
+      children: [
+        Container(
+          width: 46,
+          height: 46,
+          decoration: BoxDecoration(
+            color: const Color(0xFF7C3AED).withOpacity(0.85),
+            borderRadius: BorderRadius.circular(14),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'AI Search Engine 2026',
-                  style: TextStyle(
-                    color: Color(0xFFC084FC),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  '$totalBases+ verified bases • TH/BH/CH supported',
-                  style: const TextStyle(
-                    color: Color(0xFFE5E7EB),
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
+          child: const Icon(
+            Icons.auto_awesome_rounded,
+            color: Color(0xFFE9D5FF),
+            size: 28,
           ),
-        ],
-      ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'AI Search Engine 2026',
+                style: TextStyle(
+                  color: Color(0xFFC084FC),
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                '$totalBases+ verified bases • TH/BH/CH supported',
+                style: const TextStyle(
+                  color: Color(0xFFE5E7EB),
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -1523,28 +1490,23 @@ class _HomeScreenState extends State<HomeScreen> {
     final disliked = dislikedBases.contains(item.postUrl);
     final isPremium = item.premium == true;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF111827),
-        borderRadius: BorderRadius.circular(18),
-      ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 22),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(16),
             child: Stack(
               children: [
                 Image.network(
                   item.image,
-                  height: 210,
+                  height: 215,
                   width: double.infinity,
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) {
                     return Container(
-                      height: 210,
+                      height: 215,
                       width: double.infinity,
                       color: const Color(0xFF1F2937),
                       child: const Center(
@@ -1553,7 +1515,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     );
                   },
                 ),
-
                 Positioned.fill(
                   child: DecoratedBox(
                     decoration: BoxDecoration(
@@ -1561,19 +1522,21 @@ class _HomeScreenState extends State<HomeScreen> {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          Colors.black.withOpacity(0.10),
-                          Colors.black.withOpacity(0.70),
+                          Colors.black.withOpacity(0.04),
+                          Colors.black.withOpacity(0.72),
                         ],
                       ),
                     ),
                   ),
                 ),
-
                 Positioned(
                   top: 10,
                   left: 10,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.black.withOpacity(0.62),
                       borderRadius: BorderRadius.circular(999),
@@ -1600,12 +1563,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
-
                 Positioned(
                   top: 10,
                   right: 10,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 7,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFACC15),
                       borderRadius: BorderRadius.circular(999),
@@ -1620,7 +1585,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
-
                 Positioned(
                   left: 12,
                   right: 12,
@@ -1646,51 +1610,41 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
+
           const SizedBox(height: 10),
-          Text(
-            '$percent% Match',
-            style: const TextStyle(
-              color: Color(0xFFFACC15),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            item.title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '${item.level} • ${item.baseType} • ${item.style}',
 
-            style: const TextStyle(
-              color: Color(0xFFD1D5DB),
-              fontSize: 13,
-            ),
-          ),
-          const SizedBox(height: 8),
-
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: isPremium
-                  ? const Color(0xFFFACC15)
-                  : const Color(0xFF22C55E),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              isPremium ? '👑 PREMIUM BASE' : '✅ FREE BASE',
-              style: TextStyle(
-                color: isPremium ? Colors.black : Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w900,
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _resultChip(item.level),
+              _resultChip(item.baseType),
+              _resultChip(item.style),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: isPremium
+                      ? const Color(0xFFFACC15)
+                      : const Color(0xFF22C55E),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  isPremium ? '👑 Premium' : '✅ Free',
+                  style: TextStyle(
+                    color: isPremium ? Colors.black : Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
+
           const SizedBox(height: 10),
+
           Row(
             children: [
               Expanded(
@@ -1711,7 +1665,9 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
+
           const SizedBox(height: 10),
+
           Row(
             children: [
               Expanded(
@@ -1756,6 +1712,32 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _resultChip(String text) {
+    if (text.trim().isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 10,
+        vertical: 6,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.08),
+        ),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: Color(0xFFE5E7EB),
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -1931,9 +1913,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   AppHeader(totalBases: totalBases),
                   const SizedBox(height: 18),
                   buildStatsPanel(),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   buildAdBanner(),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   buildFeatureBanner(),
                   const SizedBox(height: 16),
                   ImagePickerBox(image: selectedImage),
