@@ -65,13 +65,13 @@ class _HomeScreenState extends State<HomeScreen> {
   };
 
   static const String iosBannerAdUnitId =
-      'ca-app-pub-3940256099942544/2934735716';
+      'ca-app-pub-9371341402256787/4621781605';
 
   static const String iosInterstitialAdUnitId =
-      'ca-app-pub-3940256099942544/4411468910';
+      'ca-app-pub-9371341402256787/2615399517';
 
   static const String iosRewardedAdUnitId =
-      'ca-app-pub-3940256099942544/1712485313';
+      'ca-app-pub-9371341402256787/2152365082';
 
   @override
   void initState() {
@@ -1272,7 +1272,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void feedbackBase(BaseResult item, bool like) {
+  Future<void> feedbackBase(BaseResult item, bool like) async {
     final key = item.postUrl;
 
     setState(() {
@@ -1284,6 +1284,24 @@ class _HomeScreenState extends State<HomeScreen> {
         likedBases.remove(key);
       }
     });
+
+    try {
+      await http.post(
+        Uri.parse('https://api.cocbasepro.com/ai/feedback'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'postUrl': item.postUrl,
+          'title': item.title,
+          'level': item.level,
+          'baseType': item.baseType,
+          'style': item.style,
+          'feedback': like ? 'like' : 'dislike',
+          'time': DateTime.now().toIso8601String(),
+        }),
+      );
+    } catch (_) {}
+
+    if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
