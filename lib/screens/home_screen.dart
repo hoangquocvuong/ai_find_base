@@ -939,66 +939,62 @@ class _HomeScreenState extends State<HomeScreen> {
 
           buildAdBanner(),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
 
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
-                child: Text(
-                  '▶ Watch Ad = +2 free searches',
-
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(.8),
-                    fontSize: 13,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    '▶ Watch Ad = +2 free searches',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(.82),
+                      fontSize: 13,
+                      height: 1.0,
+                    ),
                   ),
                 ),
               ),
-
               const SizedBox(width: 10),
-
-              ElevatedButton.icon(
-                onPressed: watchAdMock,
-
-                icon: const Icon(
-                  Icons.play_arrow_rounded,
-                ),
-
-                label: const Text(
-                  'Watch Ad (+2)',
-                ),
-
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(
-                    0xFF7C3AED,
+              SizedBox(
+                height: 44,
+                child: ElevatedButton.icon(
+                  onPressed: watchAdMock,
+                  icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                  label: const Text(
+                    'Watch Ad (+2)',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
-
-                  foregroundColor: Colors.white,
-
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 11,
-                  ),
-
-                  shape: RoundedRectangleBorder(
-                    borderRadius:
-                    BorderRadius.circular(16),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF7C3AED),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
                 ),
               ),
             ],
           ),
 
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
 
           Align(
             alignment: Alignment.centerLeft,
-
             child: Text(
               '👑 Premium = Unlimited',
-
               style: TextStyle(
-                color: Colors.white.withOpacity(.8),
+                color: Colors.white.withOpacity(.82),
                 fontSize: 13,
+                height: 1.0,
               ),
             ),
           ),
@@ -1558,151 +1554,68 @@ class _HomeScreenState extends State<HomeScreen> {
 
           const SizedBox(height: 10),
 
-          Wrap(
+          const SizedBox(height: 8),
 
-            spacing:6,
-
-            runSpacing:6,
-
-            children:[
-
-              _resultChip(item.level),
-
-              _resultChip(item.baseType),
-
-              _resultChip(item.style),
-
-              _matchChip(percent),
-
-              Container(
-
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 4,
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _resultMetaText(
+                  isPremium ? '👑 Premium' : '✅ Free',
+                  color: isPremium ? const Color(0xFFFACC15) : const Color(0xFF22C55E),
+                  bold: true,
                 ),
-
-                decoration: BoxDecoration(
-
-                  color: isPremium
-                      ? const Color(0xFFFACC15)
-                      : const Color(0xFF22C55E),
-
-                  borderRadius:
-                  BorderRadius.circular(999),
-
+                _dot(),
+                _resultMetaText(item.level),
+                _dot(),
+                _resultMetaText(item.baseType),
+                _dot(),
+                _resultMetaText(item.style),
+                _dot(),
+                _resultMetaText(
+                  '$percent% Match',
+                  color: const Color(0xFFFACC15),
+                  bold: true,
                 ),
-
-                child: Text(
-
-                  isPremium
-                      ? '👑 Premium'
-                      : '✅ Free',
-
-                  style: TextStyle(
-
-                    color: isPremium
-                        ? Colors.black
-                        : Colors.white,
-
-                    fontSize: 11,
-
-                    fontWeight: FontWeight.w900,
-
-                  ),
-
-                ),
-
-              ),
-
-            ],
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _resultChip(String text) {
+  Widget _resultMetaText(
+      String text, {
+        Color color = const Color(0xFFE5E7EB),
+        bool bold = false,
+      }) {
     if (text.trim().isEmpty) return const SizedBox.shrink();
 
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 10,
-        vertical: 6,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.08),
-        ),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Color(0xFFE5E7EB),
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-        ),
+    return Text(
+      text,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
+        color: color,
+        fontSize: 13,
+        fontWeight: bold ? FontWeight.w900 : FontWeight.w700,
       ),
     );
   }
 
-  Widget _matchChip(int percent) {
-
-    String label;
-
-    if (percent >= 95) {
-
-      label = 'Excellent';
-
-    } else if (percent >= 85) {
-
-      label = 'Great';
-
-    } else if (percent >= 75) {
-
-      label = 'Good';
-
-    } else {
-
-      label = 'Match';
-
-    }
-
-    return Container(
-
-      padding: const EdgeInsets.symmetric(
-        horizontal: 8,
-        vertical: 4,
-      ),
-
-      decoration: BoxDecoration(
-
-        color: const Color(0xFFFACC15),
-
-        borderRadius:
-        BorderRadius.circular(999),
-
-      ),
-
+  Widget _dot() {
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 6),
       child: Text(
-
-        '$percent% $label',
-
-        style: const TextStyle(
-
-          color: Colors.black,
-
-          fontSize: 11,
-
+        '•',
+        style: TextStyle(
+          color: Color(0xFF94A3B8),
+          fontSize: 13,
           fontWeight: FontWeight.w900,
-
         ),
-
       ),
-
     );
-
   }
 
   void openSavedDialog() {
@@ -1880,8 +1793,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 12),
 
                   buildFeatureBanner(),
+                  const SizedBox(height: 24),
                   ImagePickerBox(image: selectedImage),
-                  const SizedBox(height: 12),
                   ActionButtons(
                     onChoose: pickImage,
                     onReset: resetAll,
