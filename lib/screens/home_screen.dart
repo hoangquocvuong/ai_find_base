@@ -52,6 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Set<String> likedBases = {};
   Set<String> dislikedBases = {};
 
+
   final InAppPurchase iap = InAppPurchase.instance;
 
   StreamSubscription<List<PurchaseDetails>>? purchaseSubscription;
@@ -471,7 +472,39 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+  Future<void> maybeShowPremiumPopup() async {
 
+    final prefs = await SharedPreferences.getInstance();
+
+    int count =
+        prefs.getInt('premium_popup_count') ?? 0;
+
+    int last =
+        prefs.getInt('premium_popup_last') ?? 0;
+
+    final now =
+        DateTime.now().millisecondsSinceEpoch;
+
+    const twoDays =
+        2 * 24 * 60 * 60 * 1000;
+
+    if (count >= 3) return;
+
+    if (last != 0 && now - last < twoDays) return;
+
+    await prefs.setInt(
+      'premium_popup_count',
+      count + 1,
+    );
+
+    await prefs.setInt(
+      'premium_popup_last',
+      now,
+    );
+
+    showPremiumPopup();
+  }
+  
   void showPremiumPopup() {
     showDialog(
       context: context,
@@ -531,40 +564,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void showPremiumPopup() {
-    showDialog(
-      context: context,
-      builder: (_) {
-        return AlertDialog(
-          title: const Text('👑 AI Find Base Premium'),
-          content: const Text(
-            'Unlock unlimited AI searches.\n\n'
-                '✓ Unlimited AI searches\n'
-                '✓ No ads\n'
-                '✓ Faster experience',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Maybe later'),
-            ),
-            FilledButton(
-              onPressed: () {
-                Navigator.pop(context);
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Premium purchase will be connected later'),
-                  ),
-                );
-              },
-              child: const Text('Upgrade'),
-            ),
-          ],
-        );
-      },
-    );
-  }
 
   Future<void> searchSimilarBases() async {
     if (selectedImage == null) {
