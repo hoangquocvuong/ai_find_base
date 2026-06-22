@@ -7,6 +7,8 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:async';
+import 'package:in_app_purchase/in_app_purchase.dart';
 
 import '../models/base_result.dart';
 import '../widgets/action_buttons.dart';
@@ -14,6 +16,7 @@ import '../widgets/app_header.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/image_picker_box.dart';
 import '../widgets/search_button.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -49,6 +52,17 @@ class _HomeScreenState extends State<HomeScreen> {
   Set<String> likedBases = {};
   Set<String> dislikedBases = {};
 
+  final InAppPurchase iap = InAppPurchase.instance;
+
+  StreamSubscription<List<PurchaseDetails>>? purchaseSubscription;
+
+  List<ProductDetails> subscriptionProducts = [];
+
+  static const Set<String> subscriptionIds = {
+    'premium_monthly',
+    'premium_yearly',
+  };
+
   static const String iosBannerAdUnitId =
       'ca-app-pub-9371341402256787/4621781605';
 
@@ -67,6 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
     loadBannerAd();
     loadInterstitialAd();
     loadRewardedAd();
+    initPurchases();
   }
 
   @override
@@ -75,6 +90,7 @@ class _HomeScreenState extends State<HomeScreen> {
     interstitialAd?.dispose();
     rewardedAd?.dispose();
     super.dispose();
+    purchaseSubscription?.cancel();
   }
 
   Future<void> initializeApp() async {
@@ -363,23 +379,156 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<void> maybeShowPremiumPopup() async {
+  Future<void> initPurchases() async {
+    final available = await iap.isAvailable();
+
+    if (!available) {
+      debugPrint('IAP not available');
+      return;
+    }
+
+    purchaseSubscription = iap.purchaseStream.listen(
+      handlePurchaseUpdates,
+      onDone: () {
+        purchaseSubscription?.cancel();
+      },
+      onError: (error) {
+        debugPrint('IAP error: $error');
+      },
+    );
+
+    await loadSubscriptionProducts();
+    await iap.restorePurchases();
+  }
+
+  Future<void> loadSubscriptionProducts() async {
+    final response = await iap.queryProductDetails(subscriptionIds);
+
+    if (response.error != null) {
+      debugPrint('IAP product error: ${response.error}');
+      return;
+    }
+
+    if (response.productDetails.isEmpty) {
+      debugPrint('No subscription products found');
+      return;
+    }
+
+    setState(() {
+      subscriptionProducts = response.productDetails;
+    });
+  }
+
+  Future<void> buySubscription(ProductDetails product) async {
+    final purchaseParam = PurchaseParam(productDetails: product);
+
+    await iap.buyNonConsumable(
+      purchaseParam: purchaseParam,
+    );
+  }
+
+  Future<void> handlePurchaseUpdates(
+      List<PurchaseDetails> purchases,
+      ) async {
+    for (final purchase in purchases) {
+      if (purchase.status == PurchaseStatus.purchased ||
+          purchase.status == PurchaseStatus.restored) {
+        await unlockPremium();
+      }
+
+      if (purchase.pendingCompletePurchase) {
+        await iap.completePurchase(purchase);
+      }
+    }
+  }
+
+  Future<void> unlockPremium() async {
     final prefs = await SharedPreferences.getInstance();
 
-    final count = prefs.getInt('premium_popup_count') ?? 0;
-    final lastTime = prefs.getInt('premium_popup_time') ?? 0;
-    final now = DateTime.now().millisecondsSinceEpoch;
-    const twoDays = 2 * 24 * 60 * 60 * 1000;
-
-    if (count >= 3) return;
-    if (now - lastTime < twoDays) return;
-
-    await prefs.setInt('premium_popup_count', count + 1);
-    await prefs.setInt('premium_popup_time', now);
+    await prefs.setBool('is_subscriber', true);
 
     if (!mounted) return;
 
-    showPremiumPopup();
+    setState(() {
+      isSubscriber = true;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('👑 Premium activated'),
+      ),
+    );
+  }
+
+  Future<void> restorePremium() async {
+    await iap.restorePurchases();
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Restoring purchases...'),
+      ),
+    );
+  }
+
+  void showPremiumPopup() {
+    showDialog(
+      context: context,
+      builder: (_) {
+        return AlertDialog(
+          title: const Text('👑 AI Find Base Premium'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Unlock unlimited AI searches.\n\n'
+                    '✓ Unlimited AI searches\n'
+                    '✓ No rewarded ads\n'
+                    '✓ Faster experience',
+              ),
+              const SizedBox(height: 16),
+
+              if (subscriptionProducts.isEmpty)
+                const Text(
+                  'Loading subscription packages...',
+                  style: TextStyle(fontSize: 13),
+                ),
+
+              ...subscriptionProducts.map((product) {
+                return Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 10),
+                  child: FilledButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      buySubscription(product);
+                    },
+                    child: Text(
+                      '${product.title} • ${product.price}',
+                    ),
+                  ),
+                );
+              }),
+
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  restorePremium();
+                },
+                child: const Text('Restore Purchase'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Maybe later'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void showPremiumPopup() {
@@ -522,7 +671,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     if (!exists) {
-      savedBases.add(item);
+      setState(() {
+        savedBases.add(item);
+      });
 
       final prefs = await SharedPreferences.getInstance();
 
