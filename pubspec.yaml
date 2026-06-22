@@ -2,7 +2,7 @@ name: ai_find_base
 description: "AI Find Base"
 publish_to: 'none'
 
-version: 1.0.0+2
+version: 1.0.0+3
 
 environment:
   sdk: ^3.11.5
@@ -30,14 +30,6 @@ flutter_launcher_icons:
   image_path: "assets/app_icon.png"
   remove_alpha_ios: true
 
-flutter:
-  uses-material-design: true
-
-  assets:
-    - assets/bg_ai_finder.png
-    - assets/ic_header_logo.png
-    - assets/app_icon.png
-      
 flutter:
   config:
     enable-swift-package-manager: false
