@@ -39,16 +39,39 @@ class _HomeScreenState extends State<HomeScreen> {
   List<BaseResult> savedBases = [];
 
   BannerAd? bannerAd;
+  InterstitialAd? interstitialAd;
+  RewardedAd? rewardedAd;
+
   bool bannerReady = false;
+  bool interstitialReady = false;
+  bool rewardedReady = false;
 
   static const String iosBannerAdUnitId =
       'ca-app-pub-9371341402256787/4621781605';
 
+  static const String iosInterstitialAdUnitId =
+      'ca-app-pub-9371341402256787/2615399517';
+
+  static const String iosRewardedAdUnitId =
+      'ca-app-pub-9371341402256787/2152365082';
+
   @override
   void initState() {
     super.initState();
+
     initializeApp();
+
     loadBannerAd();
+    loadInterstitialAd();
+    loadRewardedAd();
+  }
+
+  @override
+  void dispose() {
+    bannerAd?.dispose();
+    interstitialAd?.dispose();
+    rewardedAd?.dispose();
+    super.dispose();
   }
 
   Future<void> initializeApp() async {
@@ -161,6 +184,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     totalSearchCount++;
 
+    if (totalSearchCount >= 4 && totalSearchCount % 4 == 0) {
+      maybeShowInterstitialAd();
+    }
+
     if (freeSearchLeft > 0) {
       freeSearchLeft--;
       await saveUsage();
@@ -180,40 +207,139 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     if (totalSearchCount % 2 == 0) {
-      showRewardAdMock();
+      showRewardAd();
     } else {
       await searchSimilarBases();
     }
   }
 
   void watchAdMock() {
-    showRewardAdMock();
+    showRewardAd();
   }
 
-  void showRewardAdMock() {
-    showDialog(
-      context: context,
-      builder: (_) {
-        return AlertDialog(
-          title: const Text('▶ Watch Ad'),
-          content: const Text(
-            'Rewarded Ad will be connected later.\n\n'
-                'For now, this simulates a successful ad reward.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () async {
-                Navigator.pop(context);
-                await rewardSuccess();
-              },
-              child: const Text('Simulate Reward'),
-            ),
-          ],
+  void loadBannerAd() {
+    bannerAd = BannerAd(
+      adUnitId: iosBannerAdUnitId,
+      size: AdSize.banner,
+      request: const AdRequest(),
+      listener: BannerAdListener(
+        onAdLoaded: (_) {
+          if (!mounted) return;
+
+          setState(() {
+            bannerReady = true;
+          });
+        },
+        onAdFailedToLoad: (ad, error) {
+          debugPrint('AdMob banner failed: ${error.message}');
+          ad.dispose();
+
+          if (!mounted) return;
+
+          setState(() {
+            bannerReady = false;
+          });
+        },
+      ),
+    )..load();
+  }
+
+  void loadInterstitialAd() {
+    InterstitialAd.load(
+      adUnitId: iosInterstitialAdUnitId,
+      request: const AdRequest(),
+      adLoadCallback: InterstitialAdLoadCallback(
+        onAdLoaded: (ad) {
+          interstitialAd = ad;
+          interstitialReady = true;
+        },
+        onAdFailedToLoad: (error) {
+          debugPrint('Interstitial failed: ${error.message}');
+          interstitialReady = false;
+        },
+      ),
+    );
+  }
+
+  void loadRewardedAd() {
+    RewardedAd.load(
+      adUnitId: iosRewardedAdUnitId,
+      request: const AdRequest(),
+      rewardedAdLoadCallback: RewardedAdLoadCallback(
+        onAdLoaded: (ad) {
+          rewardedAd = ad;
+          rewardedReady = true;
+        },
+        onAdFailedToLoad: (error) {
+          debugPrint('Rewarded failed: ${error.message}');
+          rewardedReady = false;
+        },
+      ),
+    );
+  }
+
+  void maybeShowInterstitialAd() {
+    if (!interstitialReady || interstitialAd == null) {
+      loadInterstitialAd();
+      return;
+    }
+
+    final ad = interstitialAd!;
+
+    interstitialAd = null;
+    interstitialReady = false;
+
+    ad.fullScreenContentCallback = FullScreenContentCallback(
+      onAdDismissedFullScreenContent: (ad) {
+        ad.dispose();
+        loadInterstitialAd();
+      },
+      onAdFailedToShowFullScreenContent: (ad, error) {
+        debugPrint('Interstitial show failed: ${error.message}');
+        ad.dispose();
+        loadInterstitialAd();
+      },
+    );
+
+    ad.show();
+  }
+
+  void showRewardAd() {
+    if (!rewardedReady || rewardedAd == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Ad is loading. Please try again in a moment.'),
+        ),
+      );
+
+      loadRewardedAd();
+      return;
+    }
+
+    final ad = rewardedAd!;
+
+    rewardedAd = null;
+    rewardedReady = false;
+
+    ad.fullScreenContentCallback = FullScreenContentCallback(
+      onAdDismissedFullScreenContent: (ad) {
+        ad.dispose();
+        loadRewardedAd();
+      },
+      onAdFailedToShowFullScreenContent: (ad, error) {
+        debugPrint('Rewarded show failed: ${error.message}');
+        ad.dispose();
+        loadRewardedAd();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ad failed: ${error.message}')),
         );
+      },
+    );
+
+    ad.show(
+      onUserEarnedReward: (ad, reward) async {
+        await rewardSuccess();
       },
     );
   }
@@ -229,7 +355,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('🎉 You received +2 free searches without ads'),
+        content: Text('🎉 You received +2 free searches'),
       ),
     );
   }
@@ -328,7 +454,10 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
 
-      final streamedResponse = await request.send();
+      final streamedResponse = await request.send().timeout(
+        const Duration(seconds: 45),
+      );
+
       final body = await streamedResponse.stream.bytesToString();
 
       if (streamedResponse.statusCode != 200) {
@@ -425,6 +554,518 @@ class _HomeScreenState extends State<HomeScreen> {
         .toList();
   }
 
+  Widget buildStatsPanel() {
+    final safeLeft = freeSearchLeft < 0 ? 0 : freeSearchLeft;
+    final maxCredit = safeLeft > 10 ? safeLeft : 10;
+    final percent =
+    maxCredit == 0 ? 0.0 : (safeLeft / maxCredit).clamp(0.0, 1.0);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F172A).withOpacity(0.86),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.10),
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _statBlock(
+                  title: 'Search Credits',
+                  value: isSubscriber ? '∞' : '$safeLeft',
+                  subtitle: isSubscriber ? 'unlimited' : 'searches left',
+                  color: const Color(0xFFFACC15),
+                ),
+              ),
+              _divider(),
+              Expanded(
+                child: Column(
+                  children: [
+                    Text(
+                      isSubscriber ? '100%' : '${(percent * 100).round()}%',
+                      style: const TextStyle(
+                        fontSize: 23,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Remaining',
+                      style: TextStyle(
+                        color: Color(0xFFD1D5DB),
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(999),
+                      child: LinearProgressIndicator(
+                        minHeight: 8,
+                        value: isSubscriber ? 1 : percent,
+                        backgroundColor: Colors.white.withOpacity(0.12),
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          Color(0xFFFACC15),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _divider(),
+              Expanded(
+                child: _premiumStatBlock(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '▶ Watch Ad = +2 free searches\n👑 Premium = Unlimited',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.82),
+                    height: 1.35,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              ElevatedButton.icon(
+                onPressed: watchAdMock,
+                icon: const Icon(Icons.play_arrow_rounded),
+                label: const Text('Watch Ad (+2)'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF7C3AED),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statBlock({
+    required String title,
+    required String value,
+    required String subtitle,
+    required Color color,
+  }) {
+    return Column(
+      children: [
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontSize: 13,
+            color: Color(0xFFD1D5DB),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          value,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 26,
+            fontWeight: FontWeight.w900,
+            color: color,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          subtitle,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontSize: 12,
+            color: Color(0xFFCBD5E1),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _premiumStatBlock() {
+    return InkWell(
+      onTap: showPremiumPopup,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        child: Column(
+          children: [
+            const Text(
+              'Premium',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: Color(0xFFD1D5DB),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 6),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                isSubscriber ? 'ACTIVE' : 'UNLIMITED',
+                maxLines: 1,
+                style: TextStyle(
+                  fontSize: isSubscriber ? 22 : 20,
+                  fontWeight: FontWeight.w900,
+                  color: isSubscriber
+                      ? const Color(0xFF22C55E)
+                      : const Color(0xFFFACC15),
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              isSubscriber ? 'enabled' : 'tap to upgrade',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 11,
+                color: Color(0xFFCBD5E1),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _divider() {
+    return Container(
+      width: 1,
+      height: 72,
+      margin: const EdgeInsets.symmetric(horizontal: 10),
+      color: Colors.white.withOpacity(0.12),
+    );
+  }
+
+  Widget buildAdBanner() {
+    if (!bannerReady || bannerAd == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Center(
+      child: SizedBox(
+        width: bannerAd!.size.width.toDouble(),
+        height: bannerAd!.size.height.toDouble(),
+        child: AdWidget(ad: bannerAd!),
+      ),
+    );
+  }
+
+  Widget buildFeatureBanner() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFF581C87).withOpacity(0.72),
+            const Color(0xFF0F172A).withOpacity(0.92),
+            const Color(0xFF075985).withOpacity(0.62),
+          ],
+        ),
+        border: Border.all(
+          color: const Color(0xFFA855F7).withOpacity(0.55),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: const Color(0xFF7C3AED).withOpacity(0.35),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(
+              Icons.auto_awesome_rounded,
+              color: Color(0xFFE9D5FF),
+              size: 28,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'AI Search Engine 2026',
+                  style: TextStyle(
+                    color: Color(0xFFC084FC),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '$totalBases+ verified bases • TH/BH/CH supported',
+                  style: const TextStyle(
+                    color: Color(0xFFE5E7EB),
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<String> levelsForType(String type) {
+    if (type == 'BH') return List.generate(8, (i) => 'BH${i + 3}');
+    if (type == 'CH') return List.generate(8, (i) => 'CH${i + 3}');
+
+    return List.generate(16, (i) => 'TH${i + 3}');
+  }
+
+  String currentLevelType() {
+    if (selectedLevel == null) return 'TH';
+    if (selectedLevel!.startsWith('BH')) return 'BH';
+    if (selectedLevel!.startsWith('CH')) return 'CH';
+
+    return 'TH';
+  }
+
+  Future<void> openLevelPicker() async {
+    String type = currentLevelType();
+    String tempLevel = selectedLevel ?? levelsForType(type).last;
+
+    final value = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final levels = levelsForType(type);
+            final initialIndex = levels.indexOf(tempLevel);
+            final safeIndex =
+            initialIndex < 0 ? levels.length - 1 : initialIndex;
+
+            return SafeArea(
+              child: Container(
+                margin: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF111827),
+                  borderRadius: BorderRadius.circular(26),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.10),
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Choose Base Level',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.close_rounded),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: ['TH', 'BH', 'CH'].map((item) {
+                        final active = type == item;
+
+                        return Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: FilledButton(
+                              onPressed: () {
+                                setModalState(() {
+                                  type = item;
+                                  tempLevel = levelsForType(item).last;
+                                });
+                              },
+                              style: FilledButton.styleFrom(
+                                backgroundColor: active
+                                    ? const Color(0xFFFACC15)
+                                    : const Color(0xFF1F2937),
+                                foregroundColor:
+                                active ? Colors.black : Colors.white,
+                              ),
+                              child: Text(item),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      height: 220,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF020617).withOpacity(0.45),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: ListWheelScrollView.useDelegate(
+                        key: ValueKey(type),
+                        controller: FixedExtentScrollController(
+                          initialItem: safeIndex,
+                        ),
+                        itemExtent: 54,
+                        physics: const FixedExtentScrollPhysics(),
+                        onSelectedItemChanged: (index) {
+                          setModalState(() {
+                            tempLevel = levels[index];
+                          });
+                        },
+                        childDelegate: ListWheelChildBuilderDelegate(
+                          childCount: levels.length,
+                          builder: (_, index) {
+                            final level = levels[index];
+                            final active = level == tempLevel;
+
+                            return Center(
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 180),
+                                width: active ? 120 : 90,
+                                height: active ? 46 : 38,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: active
+                                      ? const Color(0xFFFACC15)
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Text(
+                                  level,
+                                  style: TextStyle(
+                                    fontSize: active ? 24 : 20,
+                                    fontWeight: FontWeight.w900,
+                                    color: active
+                                        ? Colors.black
+                                        : Colors.white.withOpacity(0.65),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(Icons.close_rounded),
+                            label: const Text('Close'),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: FilledButton.icon(
+                            onPressed: () => Navigator.pop(context, tempLevel),
+                            icon: const Icon(Icons.check_rounded),
+                            label: const Text('Select'),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: const Color(0xFFFACC15),
+                              foregroundColor: Colors.black,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (value == null) return;
+
+    setState(() {
+      selectedLevel = value;
+    });
+  }
+
+  Widget buildLevelSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Choose Base Level',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 10),
+        InkWell(
+          onTap: openLevelPicker,
+          borderRadius: BorderRadius.circular(18),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
+            decoration: BoxDecoration(
+              color: const Color(0xFF111827).withOpacity(0.92),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: selectedLevel == null
+                    ? const Color(0xFFA78BFA)
+                    : const Color(0xFFFACC15),
+                width: 1.3,
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    selectedLevel ?? 'Required: TH18, BH10, CH10...',
+                    style: TextStyle(
+                      color: selectedLevel == null
+                          ? const Color(0xFFCBD5E1)
+                          : Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const Icon(Icons.keyboard_arrow_down_rounded),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget buildResultCard(BaseResult item) {
     final percent =
     item.score <= 1 ? (item.score * 100).round() : item.score.round();
@@ -439,59 +1080,66 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppHeader(totalBases: totalBases),
-
-          const SizedBox(height: 18),
-
-          buildStatsPanel(),
-
-          const SizedBox(height: 12),
-
-          buildAdBanner(),
-
-          const SizedBox(height: 12),
-
-          buildFeatureBanner(),
-
-          const SizedBox(height: 16),
-
-          ImagePickerBox(image: selectedImage),
-
-          const SizedBox(height: 12),
-
-          ActionButtons(
-            onChoose: pickImage,
-            onReset: resetAll,
+          ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: Image.network(
+              item.image,
+              height: 190,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) {
+                return Container(
+                  height: 190,
+                  width: double.infinity,
+                  color: const Color(0xFF1F2937),
+                  child: const Center(
+                    child: Text('Image not available'),
+                  ),
+                );
+              },
+            ),
           ),
-
-          const SizedBox(height: 16),
-
-          buildLevelSelector(),
-
-          const SizedBox(height: 16),
-
-          SearchButton(
-            loading: loading,
-            onPressed: handleSearchLogic,
-          ),
-
-          const SizedBox(height: 16),
-
-          buildLoadingBox(),
-
-          const SizedBox(height: 18),
-
-          const Text(
-            'AI Results',
-            style: TextStyle(
-              fontSize: 18,
+          const SizedBox(height: 10),
+          Text(
+            '$percent% Match',
+            style: const TextStyle(
+              color: Color(0xFFFACC15),
               fontWeight: FontWeight.bold,
             ),
           ),
-
+          const SizedBox(height: 4),
+          Text(
+            item.title,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${item.level} • ${item.baseType} • ${item.style}',
+            style: const TextStyle(
+              color: Color(0xFFD1D5DB),
+              fontSize: 13,
+            ),
+          ),
           const SizedBox(height: 10),
-
-          ...results.map(buildResultCard),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton(
+                  onPressed: () => openBase(item),
+                  child: const Text('Open Base'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: () => saveBase(item),
+                icon: const Icon(Icons.bookmark_rounded),
+                color: const Color(0xFFFACC15),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -505,9 +1153,7 @@ class _HomeScreenState extends State<HomeScreen> {
         if (savedBases.isEmpty) {
           return const SizedBox(
             height: 180,
-            child: Center(
-              child: Text('No saved bases yet'),
-            ),
+            child: Center(child: Text('No saved bases yet')),
           );
         }
 
@@ -657,584 +1303,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   @override
-  void dispose() {
-    bannerAd?.dispose();
-    super.dispose();
-  }
-  void loadBannerAd() {
-    bannerAd = BannerAd(
-      adUnitId: iosBannerAdUnitId,
-      size: AdSize.banner,
-      request: const AdRequest(),
-      listener: BannerAdListener(
-        onAdLoaded: (_) {
-          if (!mounted) return;
-          setState(() {
-            bannerReady = true;
-          });
-        },
-        onAdFailedToLoad: (ad, error) {
-          debugPrint('AdMob banner failed: ${error.message}');
-          ad.dispose();
-
-          if (!mounted) return;
-
-          setState(() {
-            bannerReady = false;
-          });
-        },
-      ),
-    )..load();
-  }
-
-  Widget buildStatsPanel() {
-    final safeLeft = freeSearchLeft < 0 ? 0 : freeSearchLeft;
-    final maxCredit = safeLeft > 10 ? safeLeft : 10;
-    final percent = maxCredit == 0 ? 0.0 : (safeLeft / maxCredit).clamp(0.0, 1.0);
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0F172A).withOpacity(0.86),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.10),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.25),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: _statBlock(
-                  title: 'Search Credits',
-                  value: isSubscriber ? '∞' : '$safeLeft',
-                  subtitle: isSubscriber ? 'unlimited' : 'searches left',
-                  color: const Color(0xFFFACC15),
-                ),
-              ),
-              _divider(),
-              Expanded(
-                child: Column(
-                  children: [
-                    Text(
-                      isSubscriber ? '100%' : '${(percent * 100).round()}%',
-                      style: const TextStyle(
-                        fontSize: 23,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Remaining',
-                      style: TextStyle(
-                        color: Color(0xFFD1D5DB),
-                        fontSize: 13,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(999),
-                      child: LinearProgressIndicator(
-                        minHeight: 8,
-                        value: isSubscriber ? 1 : percent,
-                        backgroundColor: Colors.white.withOpacity(0.12),
-                        valueColor: const AlwaysStoppedAnimation<Color>(
-                          Color(0xFFFACC15),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              _divider(),
-              Expanded(
-                child: _premiumStatBlock(),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '▶ Watch Ad = +2 free searches\n👑 Premium = Unlimited',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.82),
-                    height: 1.35,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              ElevatedButton.icon(
-                onPressed: watchAdMock,
-                icon: const Icon(Icons.play_arrow_rounded),
-                label: const Text('Watch Ad (+2)'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF7C3AED),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _statBlock({
-    required String title,
-    required String value,
-    required String subtitle,
-    required Color color,
-  }) {
-    return Column(
-      children: [
-        Text(
-          title,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 13,
-            color: Color(0xFFD1D5DB),
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          value,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.w900,
-            color: color,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          subtitle,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Color(0xFFCBD5E1),
-          ),
-        ),
-      ],
-    );
-  }
-  Widget _premiumStatBlock() {
-    return InkWell(
-      onTap: showPremiumPopup,
-      borderRadius: BorderRadius.circular(16),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-        child: Column(
-          children: [
-            const Text(
-              'Premium',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                color: Color(0xFFD1D5DB),
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 6),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                isSubscriber ? 'ACTIVE' : 'UNLIMITED',
-                maxLines: 1,
-                style: TextStyle(
-                  fontSize: isSubscriber ? 22 : 20,
-                  fontWeight: FontWeight.w900,
-                  color: isSubscriber
-                      ? const Color(0xFF22C55E)
-                      : const Color(0xFFFACC15),
-                ),
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              isSubscriber ? 'enabled' : 'tap to upgrade',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 11,
-                color: Color(0xFFCBD5E1),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _divider() {
-    return Container(
-      width: 1,
-      height: 72,
-      margin: const EdgeInsets.symmetric(horizontal: 10),
-      color: Colors.white.withOpacity(0.12),
-    );
-  }
-
-  Widget buildFeatureBanner() {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: LinearGradient(
-          colors: [
-            const Color(0xFF581C87).withOpacity(0.72),
-            const Color(0xFF0F172A).withOpacity(0.92),
-            const Color(0xFF075985).withOpacity(0.62),
-          ],
-        ),
-        border: Border.all(
-          color: const Color(0xFFA855F7).withOpacity(0.55),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: const Color(0xFF7C3AED).withOpacity(0.35),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(
-              Icons.auto_awesome_rounded,
-              color: Color(0xFFE9D5FF),
-              size: 28,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'AI Search Engine 2026',
-                  style: TextStyle(
-                    color: Color(0xFFC084FC),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  '$totalBases+ verified bases • TH/BH/CH supported',
-                  style: const TextStyle(
-                    color: Color(0xFFE5E7EB),
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget buildAdBanner() {
-    if (!bannerReady || bannerAd == null) {
-      return const SizedBox(
-        height: 0,
-      );
-    }
-
-    return Container(
-      width: double.infinity,
-      alignment: Alignment.center,
-      margin: const EdgeInsets.only(bottom: 2),
-      child: SizedBox(
-        width: bannerAd!.size.width.toDouble(),
-        height: bannerAd!.size.height.toDouble(),
-        child: AdWidget(ad: bannerAd!),
-      ),
-    );
-  }
-
-  List<String> levelsForType(String type) {
-    if (type == 'BH') {
-      return List.generate(8, (i) => 'BH${i + 3}');
-    }
-
-    if (type == 'CH') {
-      return List.generate(8, (i) => 'CH${i + 3}');
-    }
-
-    return List.generate(16, (i) => 'TH${i + 3}');
-  }
-
-  String currentLevelType() {
-    if (selectedLevel == null) return 'TH';
-
-    if (selectedLevel!.startsWith('BH')) return 'BH';
-    if (selectedLevel!.startsWith('CH')) return 'CH';
-
-    return 'TH';
-  }
-
-  Future<void> openLevelPicker() async {
-    String type = currentLevelType();
-    String tempLevel = selectedLevel ?? levelsForType(type).last;
-
-    final value = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            final levels = levelsForType(type);
-            final initialIndex = levels.indexOf(tempLevel);
-            final safeIndex = initialIndex < 0 ? levels.length - 1 : initialIndex;
-
-            return SafeArea(
-              child: Container(
-                margin: const EdgeInsets.all(14),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF111827),
-                  borderRadius: BorderRadius.circular(26),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.10),
-                  ),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        const Expanded(
-                          child: Text(
-                            'Choose Base Level',
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.close_rounded),
-                          style: IconButton.styleFrom(
-                            backgroundColor: Colors.white.withOpacity(0.10),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 14),
-
-                    Row(
-                      children: ['TH', 'BH', 'CH'].map((item) {
-                        final active = type == item;
-
-                        return Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            child: FilledButton(
-                              onPressed: () {
-                                setModalState(() {
-                                  type = item;
-                                  tempLevel = levelsForType(item).last;
-                                });
-                              },
-                              style: FilledButton.styleFrom(
-                                backgroundColor: active
-                                    ? const Color(0xFFFACC15)
-                                    : const Color(0xFF1F2937),
-                                foregroundColor:
-                                active ? Colors.black : Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                              ),
-                              child: Text(
-                                item,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    Container(
-                      height: 220,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF020617).withOpacity(0.45),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.08),
-                        ),
-                      ),
-                      child: ListWheelScrollView.useDelegate(
-                        key: ValueKey(type),
-                        controller: FixedExtentScrollController(
-                          initialItem: safeIndex,
-                        ),
-                        itemExtent: 54,
-                        physics: const FixedExtentScrollPhysics(),
-                        onSelectedItemChanged: (index) {
-                          tempLevel = levels[index];
-                        },
-                        childDelegate: ListWheelChildBuilderDelegate(
-                          childCount: levels.length,
-                          builder: (_, index) {
-                            final level = levels[index];
-                            final active = level == tempLevel;
-
-                            return Center(
-                              child: Text(
-                                level,
-                                style: TextStyle(
-                                  fontSize: active ? 28 : 22,
-                                  fontWeight: FontWeight.w900,
-                                  color: active
-                                      ? const Color(0xFFFACC15)
-                                      : Colors.white.withOpacity(0.75),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () => Navigator.pop(context),
-                            icon: const Icon(Icons.close_rounded),
-                            label: const Text('Close'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.white,
-                              side: BorderSide(
-                                color: Colors.white.withOpacity(0.18),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: FilledButton.icon(
-                            onPressed: () => Navigator.pop(context, tempLevel),
-                            icon: const Icon(Icons.check_rounded),
-                            label: const Text('Select'),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: const Color(0xFFFACC15),
-                              foregroundColor: Colors.black,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-
-    if (value == null) return;
-
-    setState(() {
-      selectedLevel = value;
-    });
-  }
-
-  Widget buildLevelSelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Choose Base Level',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        const SizedBox(height: 10),
-        InkWell(
-          onTap: openLevelPicker,
-          borderRadius: BorderRadius.circular(18),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 16,
-            ),
-            decoration: BoxDecoration(
-              color: const Color(0xFF111827).withOpacity(0.92),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: selectedLevel == null
-                    ? const Color(0xFFA78BFA)
-                    : const Color(0xFFFACC15),
-                width: 1.3,
-              ),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    selectedLevel ?? 'Required: TH18, BH10, CH10...',
-                    style: TextStyle(
-                      color: selectedLevel == null
-                          ? const Color(0xFFCBD5E1)
-                          : Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                const Icon(Icons.keyboard_arrow_down_rounded),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF020617),
@@ -1253,70 +1321,56 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Container(color: Colors.black.withOpacity(0.72)),
           ),
           SafeArea(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 90),
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-
-
-                    const SizedBox(height: 18),
-
-                buildStatsPanel(),
-
-                const SizedBox(height: 12),
-
-                buildAdBanner(),
-
-                const SizedBox(height: 12),
-
-                buildFeatureBanner(),
-
-                const SizedBox(height: 16),
-
-                ImagePickerBox(image: selectedImage),
-
-                const SizedBox(height: 12),
-
-                ActionButtons(
-                  onChoose: pickImage,
-                  onReset: resetAll,
-                ),
-
-                const SizedBox(height: 16),
-
-                buildLevelSelector(),
-
-                const SizedBox(height: 16),
-
-                      SearchButton(
-                        loading: loading,
-                        onPressed: handleSearchLogic,
-                      ),
-              const SizedBox(height: 16),
-              buildLoadingBox(),
-              const SizedBox(height: 18),
-              const Text(
-                'AI Results',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 90),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppHeader(totalBases: totalBases),
+                  const SizedBox(height: 18),
+                  buildStatsPanel(),
+                  const SizedBox(height: 12),
+                  buildAdBanner(),
+                  const SizedBox(height: 12),
+                  buildFeatureBanner(),
+                  const SizedBox(height: 16),
+                  ImagePickerBox(image: selectedImage),
+                  const SizedBox(height: 12),
+                  ActionButtons(
+                    onChoose: pickImage,
+                    onReset: resetAll,
+                  ),
+                  const SizedBox(height: 16),
+                  buildLevelSelector(),
+                  const SizedBox(height: 16),
+                  SearchButton(
+                    loading: loading,
+                    onPressed: handleSearchLogic,
+                  ),
+                  const SizedBox(height: 16),
+                  buildLoadingBox(),
+                  const SizedBox(height: 18),
+                  const Text(
+                    'AI Results',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  ...results.map(buildResultCard),
+                ],
               ),
-              const SizedBox(height: 10),
-              ...results.map(buildResultCard),
+            ),
+          ),
         ],
       ),
-    ),
-    ),
-    ],
-    ),
-    bottomNavigationBar: BottomNav(
-    onHome: () {},
-    onSaved: openSavedDialog,
-    onPremium: showPremiumPopup,
-    onMore: openMoreMenu,
-    ),
+      bottomNavigationBar: BottomNav(
+        onHome: () {},
+        onSaved: openSavedDialog,
+        onPremium: showPremiumPopup,
+        onMore: openMoreMenu,
+      ),
     );
   }
 }
