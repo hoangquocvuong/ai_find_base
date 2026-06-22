@@ -46,6 +46,9 @@ class _HomeScreenState extends State<HomeScreen> {
   bool interstitialReady = false;
   bool rewardedReady = false;
 
+  Set<String> likedBases = {};
+  Set<String> dislikedBases = {};
+
   static const String iosBannerAdUnitId =
       'ca-app-pub-9371341402256787/4621781605';
 
@@ -1066,9 +1069,38 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void feedbackBase(BaseResult item, bool like) {
+    final key = item.postUrl;
+
+    setState(() {
+      if (like) {
+        likedBases.add(key);
+        dislikedBases.remove(key);
+      } else {
+        dislikedBases.add(key);
+        likedBases.remove(key);
+      }
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          like ? '👍 Thanks for your feedback' : '👎 Thanks for your feedback',
+        ),
+      ),
+    );
+  }
+
   Widget buildResultCard(BaseResult item) {
     final percent =
     item.score <= 1 ? (item.score * 100).round() : item.score.round();
+
+    final saved = savedBases.any(
+          (base) => base.postUrl == item.postUrl,
+    );
+
+    final liked = likedBases.contains(item.postUrl);
+    final disliked = dislikedBases.contains(item.postUrl);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -1135,8 +1167,56 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(width: 8),
               IconButton(
                 onPressed: () => saveBase(item),
-                icon: const Icon(Icons.bookmark_rounded),
-                color: const Color(0xFFFACC15),
+                icon: Icon(
+                  saved
+                      ? Icons.bookmark_rounded
+                      : Icons.bookmark_border_rounded,
+                ),
+                color: saved ? const Color(0xFFFACC15) : Colors.white70,
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => feedbackBase(item, true),
+                  icon: Icon(
+                    Icons.thumb_up_rounded,
+                    color: liked ? const Color(0xFF22C55E) : Colors.white70,
+                  ),
+                  label: const Text('Helpful'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor:
+                    liked ? const Color(0xFF22C55E) : Colors.white,
+                    side: BorderSide(
+                      color: liked
+                          ? const Color(0xFF22C55E)
+                          : Colors.white24,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => feedbackBase(item, false),
+                  icon: Icon(
+                    Icons.thumb_down_rounded,
+                    color: disliked ? const Color(0xFFEF4444) : Colors.white70,
+                  ),
+                  label: const Text('Not Accurate'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor:
+                    disliked ? const Color(0xFFEF4444) : Colors.white,
+                    side: BorderSide(
+                      color: disliked
+                          ? const Color(0xFFEF4444)
+                          : Colors.white24,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -1288,19 +1368,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget buildLoadingBox() {
-    if (!loading) return const SizedBox.shrink();
-
-    return const Center(
-      child: Column(
-        children: [
-          CircularProgressIndicator(),
-          SizedBox(height: 10),
-          Text('Analyzing image...'),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -1347,8 +1414,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     loading: loading,
                     onPressed: handleSearchLogic,
                   ),
-                  const SizedBox(height: 16),
-                  buildLoadingBox(),
+
                   const SizedBox(height: 18),
                   const Text(
                     'AI Results',
