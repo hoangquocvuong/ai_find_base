@@ -1552,198 +1552,68 @@ class _HomeScreenState extends State<HomeScreen> {
                     );
                   },
                 ),
-                Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.black.withOpacity(0.04),
-                          Colors.black.withOpacity(0.72),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: 10,
-                  left: 10,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.62),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: Colors.white24),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.star_rounded,
-                          color: Color(0xFFFACC15),
-                          size: 18,
-                        ),
-                        SizedBox(width: 4),
-                        Text(
-                          '4.8',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: 10,
-                  right: 10,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 7,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFACC15),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      '$percent% Match',
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
 
           const SizedBox(height: 10),
-          Text(
 
-            item.title,
-
-            maxLines: 1,
-
-            overflow: TextOverflow.ellipsis,
-
-            style: const TextStyle(
-
-              fontSize: 16,
-
-              fontWeight: FontWeight.w800,
-
-              color: Colors.white,
-
-            ),
-
-          ),
-
-          const SizedBox(height:8),
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
+
+            spacing:6,
+
+            runSpacing:6,
+
+            children:[
+
               _resultChip(item.level),
+
               _resultChip(item.baseType),
+
               _resultChip(item.style),
+
+              _matchChip(percent),
+
               Container(
+
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
+                  horizontal: 8,
+                  vertical: 4,
                 ),
+
                 decoration: BoxDecoration(
+
                   color: isPremium
                       ? const Color(0xFFFACC15)
                       : const Color(0xFF22C55E),
-                  borderRadius: BorderRadius.circular(999),
+
+                  borderRadius:
+                  BorderRadius.circular(999),
+
                 ),
+
                 child: Text(
-                  isPremium ? '👑 Premium' : '✅ Free',
+
+                  isPremium
+                      ? '👑 Premium'
+                      : '✅ Free',
+
                   style: TextStyle(
-                    color: isPremium ? Colors.black : Colors.white,
-                    fontSize: 12,
+
+                    color: isPremium
+                        ? Colors.black
+                        : Colors.white,
+
+                    fontSize: 11,
+
                     fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-            ],
-          ),
 
-          const SizedBox(height: 10),
+                  ),
 
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton(
-                  onPressed: () => openBase(item),
-                  child: const Text('Open Base'),
                 ),
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                onPressed: () => saveBase(item),
-                icon: Icon(
-                  saved
-                      ? Icons.bookmark_rounded
-                      : Icons.bookmark_border_rounded,
-                ),
-                color: saved ? const Color(0xFFFACC15) : Colors.white70,
-              ),
-            ],
-          ),
 
-          const SizedBox(height: 10),
+              ),
 
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => feedbackBase(item, true),
-                  icon: Icon(
-                    Icons.thumb_up_rounded,
-                    color: liked ? const Color(0xFF22C55E) : Colors.white70,
-                  ),
-                  label: const Text('Helpful'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor:
-                    liked ? const Color(0xFF22C55E) : Colors.white,
-                    side: BorderSide(
-                      color: liked
-                          ? const Color(0xFF22C55E)
-                          : Colors.white24,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => feedbackBase(item, false),
-                  icon: Icon(
-                    Icons.thumb_down_rounded,
-                    color: disliked ? const Color(0xFFEF4444) : Colors.white70,
-                  ),
-                  label: const Text('Not Accurate'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor:
-                    disliked ? const Color(0xFFEF4444) : Colors.white,
-                    side: BorderSide(
-                      color: disliked
-                          ? const Color(0xFFEF4444)
-                          : Colors.white24,
-                    ),
-                  ),
-                ),
-              ),
             ],
           ),
         ],
@@ -1770,11 +1640,69 @@ class _HomeScreenState extends State<HomeScreen> {
         text,
         style: const TextStyle(
           color: Color(0xFFE5E7EB),
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: FontWeight.w700,
         ),
       ),
     );
+  }
+
+  Widget _matchChip(int percent) {
+
+    String label;
+
+    if (percent >= 95) {
+
+      label = 'Excellent';
+
+    } else if (percent >= 85) {
+
+      label = 'Great';
+
+    } else if (percent >= 75) {
+
+      label = 'Good';
+
+    } else {
+
+      label = 'Match';
+
+    }
+
+    return Container(
+
+      padding: const EdgeInsets.symmetric(
+        horizontal: 8,
+        vertical: 4,
+      ),
+
+      decoration: BoxDecoration(
+
+        color: const Color(0xFFFACC15),
+
+        borderRadius:
+        BorderRadius.circular(999),
+
+      ),
+
+      child: Text(
+
+        '$percent% $label',
+
+        style: const TextStyle(
+
+          color: Colors.black,
+
+          fontSize: 11,
+
+          fontWeight: FontWeight.w900,
+
+        ),
+
+      ),
+
+    );
+
   }
 
   void openSavedDialog() {
