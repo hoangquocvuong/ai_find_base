@@ -674,8 +674,11 @@ class _HomeScreenState extends State<HomeScreen> {
           });
         },
         onAdFailedToLoad: (ad, error) {
+          debugPrint('AdMob banner failed: ${error.message}');
           ad.dispose();
+
           if (!mounted) return;
+
           setState(() {
             bannerReady = false;
           });
@@ -754,14 +757,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               _divider(),
               Expanded(
-                child: _statBlock(
-                  title: 'Premium',
-                  value: isSubscriber ? 'Active' : 'Unlimited',
-                  subtitle: isSubscriber ? 'enabled' : 'upgrade',
-                  color: isSubscriber
-                      ? const Color(0xFF22C55E)
-                      : const Color(0xFFFACC15),
-                ),
+                child: _premiumStatBlock(),
               ),
             ],
           ),
@@ -841,6 +837,52 @@ class _HomeScreenState extends State<HomeScreen> {
       ],
     );
   }
+  Widget _premiumStatBlock() {
+    return InkWell(
+      onTap: showPremiumPopup,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        child: Column(
+          children: [
+            const Text(
+              'Premium',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: Color(0xFFD1D5DB),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 6),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                isSubscriber ? 'ACTIVE' : 'UNLIMITED',
+                maxLines: 1,
+                style: TextStyle(
+                  fontSize: isSubscriber ? 22 : 20,
+                  fontWeight: FontWeight.w900,
+                  color: isSubscriber
+                      ? const Color(0xFF22C55E)
+                      : const Color(0xFFFACC15),
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              isSubscriber ? 'enabled' : 'tap to upgrade',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 11,
+                color: Color(0xFFCBD5E1),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _divider() {
     return Container(
@@ -913,10 +955,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget buildAdBanner() {
     if (!bannerReady || bannerAd == null) {
-      return const SizedBox.shrink();
+      return const SizedBox(
+        height: 0,
+      );
     }
 
-    return Center(
+    return Container(
+      width: double.infinity,
+      alignment: Alignment.center,
+      margin: const EdgeInsets.only(bottom: 2),
       child: SizedBox(
         width: bannerAd!.size.width.toDouble(),
         height: bannerAd!.size.height.toDouble(),
@@ -925,97 +972,203 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  List<String> levelsForType(String type) {
+    if (type == 'BH') {
+      return List.generate(8, (i) => 'BH${i + 3}');
+    }
+
+    if (type == 'CH') {
+      return List.generate(8, (i) => 'CH${i + 3}');
+    }
+
+    return List.generate(16, (i) => 'TH${i + 3}');
+  }
+
+  String currentLevelType() {
+    if (selectedLevel == null) return 'TH';
+
+    if (selectedLevel!.startsWith('BH')) return 'BH';
+    if (selectedLevel!.startsWith('CH')) return 'CH';
+
+    return 'TH';
+  }
+
   Future<void> openLevelPicker() async {
+    String type = currentLevelType();
+    String tempLevel = selectedLevel ?? levelsForType(type).last;
+
     final value = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) {
-        return SafeArea(
-          child: Container(
-            margin: const EdgeInsets.all(14),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFF111827),
-              borderRadius: BorderRadius.circular(26),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.10),
-              ),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final levels = levelsForType(type);
+            final initialIndex = levels.indexOf(tempLevel);
+            final safeIndex = initialIndex < 0 ? levels.length - 1 : initialIndex;
+
+            return SafeArea(
+              child: Container(
+                margin: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF111827),
+                  borderRadius: BorderRadius.circular(26),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.10),
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Expanded(
-                      child: Text(
-                        'Choose Base Level',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Choose Base Level',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.close_rounded),
+                          style: IconButton.styleFrom(
+                            backgroundColor: Colors.white.withOpacity(0.10),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    Row(
+                      children: ['TH', 'BH', 'CH'].map((item) {
+                        final active = type == item;
+
+                        return Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: FilledButton(
+                              onPressed: () {
+                                setModalState(() {
+                                  type = item;
+                                  tempLevel = levelsForType(item).last;
+                                });
+                              },
+                              style: FilledButton.styleFrom(
+                                backgroundColor: active
+                                    ? const Color(0xFFFACC15)
+                                    : const Color(0xFF1F2937),
+                                foregroundColor:
+                                active ? Colors.black : Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              ),
+                              child: Text(
+                                item,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    Container(
+                      height: 220,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF020617).withOpacity(0.45),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.08),
+                        ),
+                      ),
+                      child: ListWheelScrollView.useDelegate(
+                        key: ValueKey(type),
+                        controller: FixedExtentScrollController(
+                          initialItem: safeIndex,
+                        ),
+                        itemExtent: 54,
+                        physics: const FixedExtentScrollPhysics(),
+                        onSelectedItemChanged: (index) {
+                          tempLevel = levels[index];
+                        },
+                        childDelegate: ListWheelChildBuilderDelegate(
+                          childCount: levels.length,
+                          builder: (_, index) {
+                            final level = levels[index];
+                            final active = level == tempLevel;
+
+                            return Center(
+                              child: Text(
+                                level,
+                                style: TextStyle(
+                                  fontSize: active ? 28 : 22,
+                                  fontWeight: FontWeight.w900,
+                                  color: active
+                                      ? const Color(0xFFFACC15)
+                                      : Colors.white.withOpacity(0.75),
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close_rounded),
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.white.withOpacity(0.10),
-                      ),
+
+                    const SizedBox(height: 16),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(Icons.close_rounded),
+                            label: const Text('Close'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: BorderSide(
+                                color: Colors.white.withOpacity(0.18),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: FilledButton.icon(
+                            onPressed: () => Navigator.pop(context, tempLevel),
+                            icon: const Icon(Icons.check_rounded),
+                            label: const Text('Select'),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: const Color(0xFFFACC15),
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: _levelColumn(
-                        title: '🏰 Town Hall',
-                        color: const Color(0xFF2563EB),
-                        levels: List.generate(16, (i) => 'TH${i + 3}'),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _levelColumn(
-                        title: '🏡 Builder',
-                        color: const Color(0xFF16A34A),
-                        levels: List.generate(8, (i) => 'BH${i + 3}'),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _levelColumn(
-                        title: '🏛 Capital',
-                        color: const Color(0xFF7C3AED),
-                        levels: List.generate(8, (i) => 'CH${i + 3}'),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: OutlinedButton.icon(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close_rounded),
-                    label: const Text('Close'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      side: BorderSide(
-                        color: Colors.white.withOpacity(0.18),
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
@@ -1025,67 +1178,6 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       selectedLevel = value;
     });
-  }
-
-  Widget _levelColumn({
-    required String title,
-    required Color color,
-    required List<String> levels,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: const Color(0xFF020617).withOpacity(0.38),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.08),
-        ),
-      ),
-      child: Column(
-        children: [
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: color.withOpacity(0.95),
-              fontSize: 13,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 6,
-            runSpacing: 7,
-            alignment: WrapAlignment.center,
-            children: levels.map((level) {
-              final active = selectedLevel == level;
-
-              return InkWell(
-                onTap: () => Navigator.pop(context, level),
-                borderRadius: BorderRadius.circular(10),
-                child: Container(
-                  width: 56,
-                  height: 38,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: active ? const Color(0xFFFACC15) : color,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    level,
-                    style: TextStyle(
-                      color: active ? Colors.black : Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
   }
 
   Widget buildLevelSelector() {
