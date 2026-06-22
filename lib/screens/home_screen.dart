@@ -1947,7 +1947,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 16),
                   SearchButton(
                     loading: false,
-                    onPressed: loading ? null : handleSearchLogic,
+                    onPressed: () async {
+                      if (loading) return;
+                      await handleSearchLogic();
+                    },
                   ),
 
                   const SizedBox(height: 12),
