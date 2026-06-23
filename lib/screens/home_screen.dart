@@ -1760,59 +1760,113 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget buildEmptyResultsCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+      margin: const EdgeInsets.only(bottom: 18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F172A).withOpacity(0.70),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.10),
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.auto_awesome_rounded,
+            color: const Color(0xFFA855F7).withOpacity(0.95),
+            size: 30,
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Your similar bases will appear here',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Color(0xFFCBD5E1),
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget buildAnalysisProgressCard() {
     if (!loading) return const SizedBox.shrink();
 
     return Container(
       width: double.infinity,
+      margin: const EdgeInsets.only(top: 4, bottom: 18),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF111827).withOpacity(0.94),
-        borderRadius: BorderRadius.circular(18),
+        color: const Color(0xFF111827).withOpacity(0.95),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: const Color(0xFFA855F7).withOpacity(0.35),
+          color: const Color(0xFFA855F7).withOpacity(0.45),
         ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(
-              color: const Color(0xFF7C3AED).withOpacity(0.20),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Padding(
-              padding: EdgeInsets.all(11),
-              child: CircularProgressIndicator(
-                strokeWidth: 3,
-                color: Color(0xFFFACC15),
-              ),
-            ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF7C3AED).withOpacity(0.20),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
-          const SizedBox(width: 14),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Analyzing base image...',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                  ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF7C3AED).withOpacity(0.22),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                SizedBox(height: 4),
-                Text(
-                  'AI is comparing layouts, level and visual structure.',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFFCBD5E1),
-                    height: 1.25,
-                  ),
+                child: const Icon(
+                  Icons.auto_awesome_rounded,
+                  color: Color(0xFFFACC15),
                 ),
-              ],
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Analyzing AI Base Data...',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    SizedBox(height: 3),
+                    Text(
+                      'Scanning internet base data and matching layouts.',
+                      style: TextStyle(
+                        color: Color(0xFFCBD5E1),
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: const LinearProgressIndicator(
+              minHeight: 8,
+              backgroundColor: Color(0xFF334155),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                Color(0xFFA855F7),
+              ),
             ),
           ),
         ],
@@ -1832,128 +1886,216 @@ class _HomeScreenState extends State<HomeScreen> {
     final disliked = dislikedBases.contains(item.postUrl);
     final isPremium = item.premium == true;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 26),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    final screenWidth = MediaQuery.of(context).size.width;
+    final imageWidth = screenWidth < 390 ? 145.0 : 170.0;
+    final imageHeight = screenWidth < 390 ? 104.0 : 116.0;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 18),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F172A).withOpacity(0.90),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: const Color(0xFF7C3AED).withOpacity(0.75),
+          width: 1.4,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF7C3AED).withOpacity(0.20),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
             child: Image.network(
               item.image,
-              height: 215,
-              width: double.infinity,
+              width: imageWidth,
+              height: imageHeight,
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) {
                 return Container(
-                  height: 215,
-                  width: double.infinity,
+                  width: imageWidth,
+                  height: imageHeight,
                   color: const Color(0xFF1F2937),
-                  child: const Center(
-                    child: Text('Image not available'),
-                  ),
+                  child: const Icon(Icons.image_not_supported),
                 );
               },
             ),
           ),
 
-          const SizedBox(height: 10),
+          const SizedBox(width: 10),
 
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _resultMetaText(
+                Text(
                   isPremium ? '👑 Premium' : '✅ Free',
-                  color: isPremium
-                      ? const Color(0xFFFACC15)
-                      : const Color(0xFF22C55E),
-                  bold: true,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: isPremium
+                        ? const Color(0xFFFACC15)
+                        : const Color(0xFF22C55E),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
-                _dot(),
-                _resultMetaText(item.level),
-                _dot(),
-                _resultMetaText(item.baseType),
-                _dot(),
-                _resultMetaText(item.style),
-                _dot(),
-                _resultMetaText(
+
+                const SizedBox(height: 5),
+
+                Text(
+                  '${item.level} • ${item.baseType}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+
+                const SizedBox(height: 5),
+
+                Text(
                   '$percent% Match',
-                  color: const Color(0xFFFACC15),
-                  bold: true,
+                  style: const TextStyle(
+                    color: Color(0xFFFACC15),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 38,
+                        child: FilledButton(
+                          onPressed: () => openBase(item),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFFE9D5FF),
+                            foregroundColor: const Color(0xFF3B0764),
+                            padding: EdgeInsets.zero,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: const Text(
+                            'Open Base',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    IconButton(
+                      onPressed: () => saveBase(item),
+                      icon: Icon(
+                        saved
+                            ? Icons.bookmark_rounded
+                            : Icons.bookmark_border_rounded,
+                      ),
+                      color: saved ? const Color(0xFFFACC15) : Colors.white70,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 34,
+                        minHeight: 34,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 8),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: _miniFeedbackButton(
+                        label: 'Helpful',
+                        icon: Icons.thumb_up_rounded,
+                        active: liked,
+                        activeColor: const Color(0xFF22C55E),
+                        onTap: () => feedbackBase(item, true),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: _miniFeedbackButton(
+                        label: 'Not Accurate',
+                        icon: Icons.thumb_down_rounded,
+                        active: disliked,
+                        activeColor: const Color(0xFFEF4444),
+                        onTap: () => feedbackBase(item, false),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ),
-
-          const SizedBox(height: 12),
-
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton(
-                  onPressed: () => openBase(item),
-                  child: const Text('Open Base'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                onPressed: () => saveBase(item),
-                icon: Icon(
-                  saved
-                      ? Icons.bookmark_rounded
-                      : Icons.bookmark_border_rounded,
-                ),
-                color: saved ? const Color(0xFFFACC15) : Colors.white70,
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 10),
-
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => feedbackBase(item, true),
-                  icon: Icon(
-                    Icons.thumb_up_rounded,
-                    color: liked ? const Color(0xFF22C55E) : Colors.white70,
-                  ),
-                  label: const Text('Helpful'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor:
-                    liked ? const Color(0xFF22C55E) : Colors.white,
-                    side: BorderSide(
-                      color: liked ? const Color(0xFF22C55E) : Colors.white24,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => feedbackBase(item, false),
-                  icon: Icon(
-                    Icons.thumb_down_rounded,
-                    color: disliked ? const Color(0xFFEF4444) : Colors.white70,
-                  ),
-                  label: const Text('Not Accurate'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor:
-                    disliked ? const Color(0xFFEF4444) : Colors.white,
-                    side: BorderSide(
-                      color: disliked ? const Color(0xFFEF4444) : Colors.white24,
-                    ),
-                  ),
-                ),
-              ),
-            ],
           ),
         ],
       ),
     );
   }
+
+  Widget _miniFeedbackButton({
+    required String label,
+    required IconData icon,
+    required bool active,
+    required Color activeColor,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        height: 30,
+        padding: const EdgeInsets.symmetric(horizontal: 7),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: active ? activeColor : Colors.white24,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 14,
+              color: active ? activeColor : Colors.white70,
+            ),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: active ? activeColor : Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _resultMetaText(
       String text, {
         Color color = const Color(0xFFE5E7EB),
@@ -2193,7 +2335,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 16),
 
                   SearchButton(
-                    loading: loading,
+                    // Keep the button stable. Loading is shown in the AI analysis card below.
+                    loading: false,
                     onPressed: () async {
                       if (loading) return;
                       await handleSearchLogic();
@@ -2206,15 +2349,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   const SizedBox(height: 18),
 
-                  const Text(
-                    'AI Results',
-                    style: TextStyle(
+                  Text(
+                    results.isEmpty ? '✨ AI Results' : '✨ AI Results (${results.length})',
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
 
                   const SizedBox(height: 10),
+
+                  if (!loading && results.isEmpty) buildEmptyResultsCard(),
 
                   ...results.map(buildResultCard),
                 ],
