@@ -53,6 +53,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Set<String> dislikedBases = {};
   BaseResult? pendingPremiumBase;
 
+  static const String premiumMapUrl =
+      'https://raw.githubusercontent.com/hoangquocvuong/premium-map.json/main/premium-map.json';
+
+  bool premiumMapLoaded = false;
+  Map<String, String> premiumLinkMap = {};
+
 
   final InAppPurchase iap = InAppPurchase.instance;
 
@@ -104,6 +110,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     await loadSavedBases(prefs);
     await loadTotalBases();
+    await loadPremiumLinkMap();
 
     final welcomeShown = prefs.getBool('welcome_bonus_shown') ?? false;
 
@@ -1234,8 +1241,147 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
 
+  String cleanLayoutLink(String value) {
+    return value
+        .trim()
+        .replaceAll('&amp;', '&')
+        .replaceAll('&AMP;', '&');
+  }
+
+  String getRawBaseLink(BaseResult item) {
+    final rawLink =
+    item.accessLink.trim().isNotEmpty ? item.accessLink : item.postUrl;
+
+    return cleanLayoutLink(rawLink);
+  }
+
+  String? extractPremiumMapKey(String link) {
+    final cleaned = cleanLayoutLink(link);
+
+    final uri = Uri.tryParse(cleaned);
+
+    if (uri != null) {
+      final segments = uri.pathSegments;
+
+      final eIndex = segments.indexOf('e');
+
+      if (eIndex >= 0 && eIndex + 1 < segments.length) {
+        final id = segments[eIndex + 1].trim();
+
+        if (RegExp(r'^\d+$').hasMatch(id)) {
+          return id;
+        }
+      }
+
+      for (final segment in segments.reversed) {
+        final match = RegExp(r'\d+').firstMatch(segment);
+
+        if (match != null) {
+          return match.group(0);
+        }
+      }
+
+      final queryId = uri.queryParameters['id'] ??
+          uri.queryParameters['e'] ??
+          uri.queryParameters['product'];
+
+      if (queryId != null && RegExp(r'^\d+$').hasMatch(queryId)) {
+        return queryId;
+      }
+    }
+
+    final fallback = RegExp(r'/e/(\d+)').firstMatch(cleaned);
+
+    if (fallback != null) {
+      return fallback.group(1);
+    }
+
+    final anyNumber = RegExp(r'\b\d{4,}\b').firstMatch(cleaned);
+
+    return anyNumber?.group(0);
+  }
+
+  Future<void> loadPremiumLinkMap({bool force = false}) async {
+    if (premiumMapLoaded && !force) return;
+
+    try {
+      final response = await http
+          .get(
+        Uri.parse(premiumMapUrl),
+      )
+          .timeout(
+        const Duration(seconds: 12),
+      );
+
+      if (response.statusCode != 200) {
+        debugPrint('Premium map load failed: ${response.statusCode}');
+        return;
+      }
+
+      final decoded = jsonDecode(response.body);
+
+      if (decoded is! Map) {
+        debugPrint('Premium map is not a JSON object');
+        return;
+      }
+
+      premiumLinkMap = decoded.map(
+            (key, value) {
+          return MapEntry(
+            key.toString(),
+            cleanLayoutLink(value.toString()),
+          );
+        },
+      );
+
+      premiumMapLoaded = true;
+
+      debugPrint('Premium map loaded: ${premiumLinkMap.length} links');
+    } catch (e) {
+      debugPrint('Premium map error: $e');
+    }
+  }
+
+  Future<String> resolveBaseLink(BaseResult item) async {
+    final rawLink = getRawBaseLink(item);
+
+    if (rawLink.isEmpty) {
+      return '';
+    }
+
+    if (item.premium != true) {
+      return rawLink;
+    }
+
+    if (rawLink.contains('link.clashofclans.com')) {
+      return cleanLayoutLink(rawLink);
+    }
+
+    if (!premiumMapLoaded || premiumLinkMap.isEmpty) {
+      await loadPremiumLinkMap();
+    }
+
+    final mapKey = extractPremiumMapKey(rawLink);
+
+    if (mapKey != null) {
+      final mappedLink = premiumLinkMap[mapKey];
+
+      if (mappedLink != null && mappedLink.trim().isNotEmpty) {
+        return cleanLayoutLink(mappedLink);
+      }
+    }
+
+    final directMappedLink = premiumLinkMap[rawLink];
+
+    if (directMappedLink != null && directMappedLink.trim().isNotEmpty) {
+      return cleanLayoutLink(directMappedLink);
+    }
+
+    return rawLink;
+  }
+
   Future<void> openBaseLink(BaseResult item) async {
-    final link = item.accessLink.isNotEmpty ? item.accessLink : item.postUrl;
+    final link = await resolveBaseLink(item);
 
     if (link.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1244,10 +1390,39 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    await launchUrl(
-      Uri.parse(link),
+    if (item.premium == true &&
+        !link.contains('link.clashofclans.com') &&
+        !isSubscriber) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Premium link could not be unlocked. Please try again later.',
+          ),
+        ),
+      );
+
+      return;
+    }
+
+    final uri = Uri.tryParse(link);
+
+    if (uri == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid base link')),
+      );
+      return;
+    }
+
+    final opened = await launchUrl(
+      uri,
       mode: LaunchMode.externalApplication,
     );
+
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open base link')),
+      );
+    }
   }
 
   void showRewardAdForPremiumBase(BaseResult item) {
