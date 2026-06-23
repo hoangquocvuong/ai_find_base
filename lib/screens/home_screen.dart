@@ -1760,113 +1760,255 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget buildEmptyResultsCard() {
+  Widget buildAnalysisProgressCard() {
+    if (!loading) return const SizedBox.shrink();
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.20, end: 0.86),
+      duration: const Duration(milliseconds: 1200),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, _) {
+        return Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(top: 4, bottom: 18),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF111827).withOpacity(0.95),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: const Color(0xFFA855F7).withOpacity(0.48),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF7C3AED).withOpacity(0.22),
+                blurRadius: 22,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF7C3AED).withOpacity(0.22),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: const Icon(
+                      Icons.auto_awesome_rounded,
+                      color: Color(0xFFFACC15),
+                      size: 25,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Analyzing AI Base Data...',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          'Scanning internet layouts and ranking similar bases.',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.74),
+                            fontSize: 12.5,
+                            height: 1.25,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${(value * 100).round()}%',
+                    style: const TextStyle(
+                      color: Color(0xFFFACC15),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: LinearProgressIndicator(
+                  minHeight: 8,
+                  value: value,
+                  backgroundColor: const Color(0xFF334155),
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    Color(0xFFA855F7),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _analysisStep(
+                      icon: Icons.image_search_rounded,
+                      label: 'Reading image',
+                      done: true,
+                    ),
+                  ),
+                  Expanded(
+                    child: _analysisStep(
+                      icon: Icons.grid_view_rounded,
+                      label: 'Detecting base',
+                      done: true,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: _analysisStep(
+                      icon: Icons.storage_rounded,
+                      label: 'Matching data',
+                      done: true,
+                    ),
+                  ),
+                  Expanded(
+                    child: _analysisStep(
+                      icon: Icons.leaderboard_rounded,
+                      label: 'Ranking results',
+                      done: false,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _analysisStep({
+    required IconData icon,
+    required String label,
+    required bool done,
+  }) {
+    return Row(
+      children: [
+        Icon(
+          done ? Icons.check_circle_rounded : icon,
+          size: 15,
+          color: done ? const Color(0xFF22C55E) : const Color(0xFFFACC15),
+        ),
+        const SizedBox(width: 5),
+        Expanded(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.82),
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget buildAiResultsHeader() {
+    return Row(
+      children: [
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: const Color(0xFF7C3AED).withOpacity(0.26),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Icon(
+            Icons.auto_awesome_rounded,
+            color: Color(0xFFFACC15),
+            size: 20,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            results.isEmpty ? 'AI Results' : 'AI Results (${results.length})',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 19,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget buildAiResultsEmptyState() {
+    if (loading || results.isNotEmpty) return const SizedBox.shrink();
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
-      margin: const EdgeInsets.only(bottom: 18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A).withOpacity(0.70),
+        color: const Color(0xFF111827).withOpacity(0.80),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: Colors.white.withOpacity(0.10),
         ),
       ),
-      child: Column(
+      child: Row(
         children: [
-          Icon(
-            Icons.auto_awesome_rounded,
-            color: const Color(0xFFA855F7).withOpacity(0.95),
-            size: 30,
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Your similar bases will appear here',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Color(0xFFCBD5E1),
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: const Color(0xFF7C3AED).withOpacity(0.20),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(
+              Icons.image_search_rounded,
+              color: Color(0xFFC084FC),
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget buildAnalysisProgressCard() {
-    if (!loading) return const SizedBox.shrink();
-
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(top: 4, bottom: 18),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF111827).withOpacity(0.95),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFFA855F7).withOpacity(0.45),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF7C3AED).withOpacity(0.20),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF7C3AED).withOpacity(0.22),
-                  borderRadius: BorderRadius.circular(14),
+          const SizedBox(width: 13),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  'No results yet',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
-                child: const Icon(
-                  Icons.auto_awesome_rounded,
-                  color: Color(0xFFFACC15),
+                SizedBox(height: 4),
+                Text(
+                  'Upload a base screenshot, choose level and start AI search.',
+                  style: TextStyle(
+                    color: Color(0xFFCBD5E1),
+                    fontSize: 12.5,
+                    height: 1.3,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Analyzing AI Base Data...',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    SizedBox(height: 3),
-                    Text(
-                      'Scanning internet base data and matching layouts.',
-                      style: TextStyle(
-                        color: Color(0xFFCBD5E1),
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: const LinearProgressIndicator(
-              minHeight: 8,
-              backgroundColor: Color(0xFF334155),
-              valueColor: AlwaysStoppedAnimation<Color>(
-                Color(0xFFA855F7),
-              ),
+              ],
             ),
           ),
         ],
@@ -1886,19 +2028,22 @@ class _HomeScreenState extends State<HomeScreen> {
     final disliked = dislikedBases.contains(item.postUrl);
     final isPremium = item.premium == true;
 
-    final screenWidth = MediaQuery.of(context).size.width;
-    final imageWidth = screenWidth < 390 ? 145.0 : 170.0;
-    final imageHeight = screenWidth < 390 ? 104.0 : 116.0;
+    final meta = [
+      item.level,
+      item.baseType,
+      item.style,
+      item.defense,
+    ].where((value) => value.trim().isNotEmpty).join(' • ');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 18),
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(9),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A).withOpacity(0.90),
-        borderRadius: BorderRadius.circular(18),
+        color: const Color(0xFF0F172A).withOpacity(0.92),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: const Color(0xFF7C3AED).withOpacity(0.75),
-          width: 1.4,
+          color: const Color(0xFF7C3AED).withOpacity(0.72),
+          width: 1.35,
         ),
         boxShadow: [
           BoxShadow(
@@ -1911,94 +2056,73 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(14),
-            child: Image.network(
-              item.image,
-              width: imageWidth,
-              height: imageHeight,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) {
-                return Container(
-                  width: imageWidth,
-                  height: imageHeight,
-                  color: const Color(0xFF1F2937),
-                  child: const Icon(Icons.image_not_supported),
-                );
-              },
-            ),
+          Stack(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(15),
+                child: Image.network(
+                  item.image,
+                  width: 138,
+                  height: 126,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) {
+                    return Container(
+                      width: 138,
+                      height: 126,
+                      color: const Color(0xFF1F2937),
+                      child: const Icon(Icons.image_not_supported),
+                    );
+                  },
+                ),
+              ),
+              Positioned(
+                left: 7,
+                top: 7,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.64),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.16),
+                    ),
+                  ),
+                  child: Text(
+                    '$percent%',
+                    style: const TextStyle(
+                      color: Color(0xFFFACC15),
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-
-          const SizedBox(width: 10),
-
+          const SizedBox(width: 11),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  isPremium ? '👑 Premium' : '✅ Free',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: isPremium
-                        ? const Color(0xFFFACC15)
-                        : const Color(0xFF22C55E),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-
-                const SizedBox(height: 5),
-
-                Text(
-                  '${item.level} • ${item.baseType}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-
-                const SizedBox(height: 5),
-
-                Text(
-                  '$percent% Match',
-                  style: const TextStyle(
-                    color: Color(0xFFFACC15),
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-
-                const SizedBox(height: 10),
-
                 Row(
                   children: [
                     Expanded(
-                      child: SizedBox(
-                        height: 38,
-                        child: FilledButton(
-                          onPressed: () => openBase(item),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: const Color(0xFFE9D5FF),
-                            foregroundColor: const Color(0xFF3B0764),
-                            padding: EdgeInsets.zero,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          child: const Text(
-                            'Open Base',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
+                      child: Text(
+                        isPremium ? '👑 Premium Base' : '✅ Free Base',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: isPremium
+                              ? const Color(0xFFFACC15)
+                              : const Color(0xFF22C55E),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 6),
                     IconButton(
                       onPressed: () => saveBase(item),
                       icon: Icon(
@@ -2009,15 +2133,61 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: saved ? const Color(0xFFFACC15) : Colors.white70,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(
-                        minWidth: 34,
-                        minHeight: 34,
+                        minWidth: 30,
+                        minHeight: 30,
                       ),
+                      visualDensity: VisualDensity.compact,
                     ),
                   ],
                 ),
-
+                const SizedBox(height: 3),
+                Text(
+                  meta.isEmpty ? 'AI matched base layout' : meta,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFFE5E7EB),
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    height: 1.25,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '$percent% Match',
+                  style: const TextStyle(
+                    color: Color(0xFFFACC15),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
                 const SizedBox(height: 8),
-
+                SizedBox(
+                  height: 36,
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: () => openBase(item),
+                    icon: const Icon(
+                      Icons.open_in_new_rounded,
+                      size: 16,
+                    ),
+                    label: const Text(
+                      'Open Base',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFFE9D5FF),
+                      foregroundColor: const Color(0xFF3B0764),
+                      padding: EdgeInsets.zero,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(13),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 7),
                 Row(
                   children: [
                     Expanded(
@@ -2060,10 +2230,12 @@ class _HomeScreenState extends State<HomeScreen> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(999),
       child: Container(
-        height: 30,
-        padding: const EdgeInsets.symmetric(horizontal: 7),
+        height: 29,
+        padding: const EdgeInsets.symmetric(horizontal: 6),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.12),
+          color: active
+              ? activeColor.withOpacity(0.12)
+              : Colors.black.withOpacity(0.16),
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
             color: active ? activeColor : Colors.white24,
@@ -2074,7 +2246,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Icon(
               icon,
-              size: 14,
+              size: 13,
               color: active ? activeColor : Colors.white70,
             ),
             const SizedBox(width: 4),
@@ -2085,7 +2257,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: active ? activeColor : Colors.white,
-                  fontSize: 11,
+                  fontSize: 10.5,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -2335,7 +2507,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 16),
 
                   SearchButton(
-                    // Keep the button stable. Loading is shown in the AI analysis card below.
                     loading: false,
                     onPressed: () async {
                       if (loading) return;
@@ -2349,17 +2520,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   const SizedBox(height: 18),
 
-                  Text(
-                    results.isEmpty ? '✨ AI Results' : '✨ AI Results (${results.length})',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  buildAiResultsHeader(),
 
                   const SizedBox(height: 10),
 
-                  if (!loading && results.isEmpty) buildEmptyResultsCard(),
+                  buildAiResultsEmptyState(),
 
                   ...results.map(buildResultCard),
                 ],
