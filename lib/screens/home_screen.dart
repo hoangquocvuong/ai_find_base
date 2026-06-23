@@ -547,209 +547,226 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
 
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
+      barrierDismissible: true,
       builder: (_) {
-        return SafeArea(
-          child: Container(
-            margin: const EdgeInsets.all(14),
-            padding: const EdgeInsets.fromLTRB(22, 18, 22, 16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8F5FF),
-              borderRadius: BorderRadius.circular(28),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.35),
-                  blurRadius: 30,
-                  offset: const Offset(0, 12),
-                ),
-              ],
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 22,
+            vertical: 22,
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: 430,
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8F5FF),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.35),
+                    blurRadius: 26,
+                    offset: const Offset(0, 12),
+                  ),
+                ],
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Expanded(
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            '🚀 Upgrade AI Search',
+                            style: TextStyle(
+                              color: Color(0xFF111827),
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(
+                            Icons.close_rounded,
+                            color: Color(0xFF374151),
+                            size: 26,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    const Align(
+                      alignment: Alignment.centerLeft,
                       child: Text(
-                        '🚀 Upgrade AI Search',
+                        'Find Similar Bases Faster with AI',
                         style: TextStyle(
                           color: Color(0xFF111827),
-                          fontSize: 25,
+                          fontSize: 18,
                           fontWeight: FontWeight.w900,
+                          height: 1.2,
                         ),
                       ),
                     ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(
-                        Icons.close_rounded,
-                        color: Color(0xFF374151),
-                        size: 30,
-                      ),
-                    ),
-                  ],
-                ),
 
-                const SizedBox(height: 14),
+                    const SizedBox(height: 12),
 
-                const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Find Similar Bases Faster with AI',
-                    style: TextStyle(
-                      color: Color(0xFF111827),
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                      height: 1.25,
-                    ),
-                  ),
-                ),
+                    buildPremiumItem('Unlimited AI Image Searches'),
+                    buildPremiumItem('Remove All Ads'),
+                    buildPremiumItem('Faster AI Matching'),
+                    buildPremiumItem('Access 2600+ Verified Bases'),
+                    buildPremiumItem('TH / BH / CH Search Support'),
 
-                const SizedBox(height: 18),
+                    const SizedBox(height: 8),
 
-                buildPremiumItem('Unlimited AI Image Searches'),
-                buildPremiumItem('Remove All Ads'),
-                buildPremiumItem('Faster AI Matching'),
-                buildPremiumItem('Access 2600+ Verified Bases'),
-                buildPremiumItem('TH / BH / CH Base Search Support'),
-                buildPremiumItem('Priority Updates for New Bases'),
-
-                const SizedBox(height: 16),
-
-                Text(
-                  'Get unlimited AI-powered base search and premium features.',
-                  style: TextStyle(
-                    color: Colors.black.withOpacity(0.42),
-                    fontSize: 15,
-                    height: 1.35,
-                  ),
-                ),
-
-                const SizedBox(height: 6),
-
-                Text(
-                  'Subscriptions renew automatically unless cancelled.',
-                  style: TextStyle(
-                    color: Colors.black.withOpacity(0.42),
-                    fontSize: 14,
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    TextButton(
-                      onPressed: () {
-                        launchUrl(
-                          Uri.parse(
-                            'https://www.cocbasepro.com/p/privacy-policy.html',
-                          ),
-                          mode: LaunchMode.externalApplication,
-                        );
-                      },
-                      child: const Text(
-                        'Privacy Policy',
-                        style: TextStyle(
-                          color: Color(0xFF7C3AED),
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    const Text(
-                      '|',
-                      style: TextStyle(color: Color(0xFF9CA3AF)),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        launchUrl(
-                          Uri.parse(
-                            'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/',
-                          ),
-                          mode: LaunchMode.externalApplication,
-                        );
-                      },
-                      child: const Text(
-                        'Terms of Use',
-                        style: TextStyle(
-                          color: Color(0xFF7C3AED),
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 4),
-
-                if (subscriptionProducts.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                    child: Text(
-                      'Loading subscription packages...',
+                    Text(
+                      'Unlimited AI-powered base search and premium features.',
+                      textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: Color(0xFF6B7280),
-                        fontSize: 14,
+                        color: Colors.black.withOpacity(0.45),
+                        fontSize: 13,
+                        height: 1.25,
                       ),
                     ),
-                  ),
 
-                Row(
-                  children: [
-                    Expanded(
-                      child: premiumPlanCard(
-                        title: 'Monthly Plan',
-                        price: monthly?.price ?? '\$4.99',
-                        subtitle: '/ Month',
-                        badge: null,
-                        highlighted: false,
-                        onTap: () {
-                          if (monthly == null) return;
+                    const SizedBox(height: 4),
 
-                          Navigator.pop(context);
-                          buySubscription(monthly!);
-                        },
+                    Text(
+                      'Auto-renews unless cancelled.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.black.withOpacity(0.45),
+                        fontSize: 12,
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: premiumPlanCard(
-                        title: 'Yearly Plan',
-                        price: yearly?.price ?? '\$39.99',
-                        subtitle: '/ Year',
-                        badge: 'Save 40%',
-                        highlighted: true,
-                        onTap: () {
-                          if (yearly == null) return;
 
-                          Navigator.pop(context);
-                          buySubscription(yearly!);
-                        },
+                    const SizedBox(height: 8),
+
+                    if (subscriptionProducts.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: Text(
+                          'Loading subscription packages...',
+                          style: TextStyle(
+                            color: Color(0xFF6B7280),
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: premiumPlanCard(
+                            title: 'Monthly',
+                            price: monthly?.price ?? '\$4.99',
+                            subtitle: '/ Month',
+                            highlighted: false,
+                            onTap: () {
+                              if (monthly == null) return;
+
+                              Navigator.pop(context);
+                              buySubscription(monthly!);
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: premiumPlanCard(
+                            title: 'Yearly',
+                            price: yearly?.price ?? '\$39.99',
+                            subtitle: '/ Year',
+                            badge: 'Save 40%',
+                            highlighted: true,
+                            onTap: () {
+                              if (yearly == null) return;
+
+                              Navigator.pop(context);
+                              buySubscription(yearly!);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 6),
+
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            launchUrl(
+                              Uri.parse(
+                                'https://www.cocbasepro.com/p/privacy-policy.html',
+                              ),
+                              mode: LaunchMode.externalApplication,
+                            );
+                          },
+                          child: const Text(
+                            'Privacy Policy',
+                            style: TextStyle(
+                              color: Color(0xFF7C3AED),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        const Text(
+                          '|',
+                          style: TextStyle(
+                            color: Color(0xFF9CA3AF),
+                            fontSize: 12,
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            launchUrl(
+                              Uri.parse(
+                                'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/',
+                              ),
+                              mode: LaunchMode.externalApplication,
+                            );
+                          },
+                          child: const Text(
+                            'Terms of Use',
+                            style: TextStyle(
+                              color: Color(0xFF7C3AED),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        restorePremium();
+                      },
+                      child: const Text(
+                        'Restore Purchase',
+                        style: TextStyle(
+                          color: Color(0xFF6D28D9),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
                   ],
                 ),
-
-                const SizedBox(height: 8),
-
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    restorePremium();
-                  },
-                  child: const Text(
-                    'Restore Purchase',
-                    style: TextStyle(
-                      color: Color(0xFF6D28D9),
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         );
