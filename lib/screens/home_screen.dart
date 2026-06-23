@@ -51,6 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Set<String> likedBases = {};
   Set<String> dislikedBases = {};
+  BaseResult? pendingPremiumBase;
 
 
   final InAppPurchase iap = InAppPurchase.instance;
@@ -1055,6 +1056,185 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> openBase(BaseResult item) async {
+    final isPremiumBase = item.premium == true;
+
+    if (isPremiumBase && !isSubscriber) {
+      showPremiumBaseLockedDialog(item);
+      return;
+    }
+
+    await openBaseLink(item);
+  }
+
+  void showPremiumBaseLockedDialog(BaseResult item) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (_) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 24,
+          ),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8F5FF),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.38),
+                  blurRadius: 28,
+                  offset: const Offset(0, 14),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 46,
+                      height: 46,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFACC15).withOpacity(0.22),
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: const Icon(
+                        Icons.workspace_premium_rounded,
+                        color: Color(0xFFEAB308),
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Premium Base',
+                        style: TextStyle(
+                          color: Color(0xFF111827),
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        color: Color(0xFF374151),
+                        size: 26,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 14),
+
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'This matched base is premium.',
+                    style: TextStyle(
+                      color: Color(0xFF111827),
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                Text(
+                  'Upgrade to unlock premium base links instantly, or watch a short ad to get this base link.',
+                  style: TextStyle(
+                    color: Colors.black.withOpacity(0.62),
+                    fontSize: 14,
+                    height: 1.35,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          showRewardAdForPremiumBase(item);
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF6D28D9),
+                          side: const BorderSide(
+                            color: Color(0xFF7C3AED),
+                            width: 1.4,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                        ),
+                        child: const Text(
+                          'Watch Ad',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          showPremiumPopup();
+                        },
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFFFACC15),
+                          foregroundColor: Colors.black,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                        ),
+                        child: const Text(
+                          'Upgrade',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 8),
+
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(
+                      color: Color(0xFF6B7280),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+
+  Future<void> openBaseLink(BaseResult item) async {
     final link = item.accessLink.isNotEmpty ? item.accessLink : item.postUrl;
 
     if (link.isEmpty) {
@@ -1064,11 +1244,64 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    final uri = Uri.parse(link);
-
     await launchUrl(
-      uri,
+      Uri.parse(link),
       mode: LaunchMode.externalApplication,
+    );
+  }
+
+  void showRewardAdForPremiumBase(BaseResult item) {
+    pendingPremiumBase = item;
+
+    if (!rewardedReady || rewardedAd == null) {
+      loadRewardedAd();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Ad is still loading. Please try again in a few seconds.'),
+        ),
+      );
+
+      return;
+    }
+
+    final ad = rewardedAd!;
+
+    rewardedAd = null;
+    rewardedReady = false;
+
+    ad.fullScreenContentCallback = FullScreenContentCallback(
+      onAdDismissedFullScreenContent: (ad) {
+        ad.dispose();
+        loadRewardedAd();
+
+        if (pendingPremiumBase == item) {
+          pendingPremiumBase = null;
+        }
+      },
+      onAdFailedToShowFullScreenContent: (ad, error) {
+        ad.dispose();
+        loadRewardedAd();
+
+        if (pendingPremiumBase == item) {
+          pendingPremiumBase = null;
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ad failed to show: ${error.message}')),
+        );
+      },
+    );
+
+    ad.show(
+      onUserEarnedReward: (ad, reward) async {
+        final itemToOpen = pendingPremiumBase;
+        pendingPremiumBase = null;
+
+        if (itemToOpen != null) {
+          await openBaseLink(itemToOpen);
+        }
+      },
     );
   }
 
@@ -1691,11 +1924,16 @@ class _HomeScreenState extends State<HomeScreen> {
               color: const Color(0xFF111827).withOpacity(0.92),
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
-                color: selectedLevel == null
-                    ? const Color(0xFFA78BFA)
-                    : const Color(0xFFFACC15),
-                width: 1.3,
+                color: const Color(0xFFFACC15),
+                width: selectedLevel == null ? 1.6 : 1.8,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFFACC15).withOpacity(0.14),
+                  blurRadius: 14,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
             child: Row(
               children: [
@@ -1711,7 +1949,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
-                const Icon(Icons.keyboard_arrow_down_rounded),
+                const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: Color(0xFFFACC15),
+                ),
               ],
             ),
           ),
@@ -1966,10 +2207,10 @@ class _HomeScreenState extends State<HomeScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF111827).withOpacity(0.80),
+        color: Colors.white.withOpacity(0.06),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: Colors.white.withOpacity(0.10),
+          color: const Color(0xFF22D3EE).withOpacity(0.18),
         ),
       ),
       child: Row(
@@ -2039,15 +2280,20 @@ class _HomeScreenState extends State<HomeScreen> {
       margin: const EdgeInsets.only(bottom: 18),
       padding: const EdgeInsets.all(9),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A).withOpacity(0.92),
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: const Color(0xFF7C3AED).withOpacity(0.72),
+          color: const Color(0xFF22D3EE).withOpacity(0.70),
           width: 1.35,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF7C3AED).withOpacity(0.20),
+            color: const Color(0xFF22D3EE).withOpacity(0.14),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+          BoxShadow(
+            color: const Color(0xFF7C3AED).withOpacity(0.12),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -2469,7 +2715,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           Positioned.fill(
-            child: Container(color: Colors.black.withOpacity(0.72)),
+            child: Container(color: Colors.black.withOpacity(0.66)),
           ),
           SafeArea(
             child: SingleChildScrollView(
