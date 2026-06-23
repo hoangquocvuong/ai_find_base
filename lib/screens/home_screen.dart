@@ -2164,23 +2164,36 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   AppHeader(totalBases: totalBases),
+
                   const SizedBox(height: 18),
+
                   buildStatsPanel(),
 
                   const SizedBox(height: 26),
 
                   buildFeatureBanner(),
+
                   const SizedBox(height: 30),
+
                   ImagePickerBox(image: selectedImage),
+
+                  // ✅ Tạo khoảng cách giữa khung ảnh và 2 nút
+                  const SizedBox(height: 18),
+
                   ActionButtons(
                     onChoose: pickImage,
                     onReset: resetAll,
                   ),
-                  const SizedBox(height: 16),
+
+                  // ✅ Tạo khoảng cách giữa 2 nút và chọn level
+                  const SizedBox(height: 22),
+
                   buildLevelSelector(),
+
                   const SizedBox(height: 16),
+
                   SearchButton(
-                    loading: false,
+                    loading: loading,
                     onPressed: () async {
                       if (loading) return;
                       await handleSearchLogic();
@@ -2192,6 +2205,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   buildAnalysisProgressCard(),
 
                   const SizedBox(height: 18),
+
                   const Text(
                     'AI Results',
                     style: TextStyle(
@@ -2199,7 +2213,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+
                   const SizedBox(height: 10),
+
                   ...results.map(buildResultCard),
                 ],
               ),
