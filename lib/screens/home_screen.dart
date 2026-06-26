@@ -409,10 +409,26 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!rewardedReady || rewardedAd == null) {
       loadRewardedAd();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Ad is still loading. Please try again in a few seconds.'),
-        ),
+      if (!mounted) return;
+
+      showDialog(
+        context: context,
+        barrierDismissible: true,
+        builder: (_) {
+          return AlertDialog(
+            title: const Text('Rewarded Ad'),
+            content: const Text(
+              'Rewarded ads are currently unavailable.\n\n'
+                  'Please try again later.',
+            ),
+            actions: [
+              FilledButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          );
+        },
       );
 
       return;
@@ -439,8 +455,24 @@ class _HomeScreenState extends State<HomeScreen> {
 
         if (!mounted) return;
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ad failed to show: ${error.message}')),
+        showDialog(
+          context: context,
+          barrierDismissible: true,
+          builder: (_) {
+            return AlertDialog(
+              title: const Text('Rewarded Ad'),
+              content: const Text(
+                'Rewarded ads are currently unavailable.\n\n'
+                    'Please try again later.',
+              ),
+              actions: [
+                FilledButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
