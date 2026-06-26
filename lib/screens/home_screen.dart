@@ -101,10 +101,10 @@ class _HomeScreenState extends State<HomeScreen> {
     interstitialAd?.dispose();
     rewardedAd?.dispose();
     scrollController.dispose();
-    super.dispose();
     purchaseSubscription?.cancel();
-
+    super.dispose();
   }
+  
   void showDailyBonusPopup() {
     showDialog(
       context: context,
@@ -2952,7 +2952,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Container(color: Colors.black.withOpacity(0.66)),
           ),
           SafeArea(
-            SingleChildScrollView(
+            child: SingleChildScrollView(
               controller: scrollController,
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 90),
               child: Column(
