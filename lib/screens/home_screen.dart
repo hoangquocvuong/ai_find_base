@@ -104,7 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
     purchaseSubscription?.cancel();
     super.dispose();
   }
-  
+
   void showDailyBonusPopup() {
     showDialog(
       context: context,
@@ -347,12 +347,6 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Home'),
-        duration: Duration(milliseconds: 700),
-      ),
-    );
   }
 
   void loadRewardedAd() {
