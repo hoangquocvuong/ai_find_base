@@ -27,6 +27,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final ImagePicker picker = ImagePicker();
+  final ScrollController scrollController = ScrollController();
 
   File? selectedImage;
   String? selectedLevel;
@@ -37,6 +38,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   bool loading = false;
   bool isSubscriber = false;
+  bool dailyBonusPopupPending = false;
 
   List<BaseResult> results = [];
   List<BaseResult> savedBases = [];
@@ -52,6 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Set<String> likedBases = {};
   Set<String> dislikedBases = {};
   BaseResult? pendingPremiumBase;
+
 
   static const String premiumMapUrl =
       'https://raw.githubusercontent.com/hoangquocvuong/premium-map.json/main/premium-map.json';
@@ -97,8 +100,31 @@ class _HomeScreenState extends State<HomeScreen> {
     bannerAd?.dispose();
     interstitialAd?.dispose();
     rewardedAd?.dispose();
+    scrollController.dispose();
     super.dispose();
     purchaseSubscription?.cancel();
+
+  }
+  void showDailyBonusPopup() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (_) {
+        return AlertDialog(
+          title: const Text('🎁 Daily Login Reward'),
+          content: const Text(
+            '+2 Search Credits added!\n\n'
+                'Open the app every day to receive more free AI searches.',
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Awesome!'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> initializeApp() async {
@@ -119,6 +145,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
       await prefs.setBool('welcome_bonus_shown', true);
       await prefs.setInt('free_search_left', freeSearchLeft);
+      await prefs.setString(
+        'daily_bonus_day',
+        DateTime.now().toIso8601String().substring(0, 10),
+      );
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
@@ -151,6 +181,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (lastBonus != today) {
       freeSearchLeft += 2;
+      dailyBonusPopupPending = true;
 
       await prefs.setString('daily_bonus_day', today);
       await prefs.setInt('free_search_left', freeSearchLeft);
@@ -158,6 +189,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (mounted) {
       setState(() {});
+
+      if (dailyBonusPopupPending) {
+        dailyBonusPopupPending = false;
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          showDailyBonusPopup();
+        });
+      }
     }
   }
 
@@ -292,6 +332,25 @@ class _HomeScreenState extends State<HomeScreen> {
           debugPrint('Interstitial failed: ${error.message}');
           interstitialReady = false;
         },
+      ),
+    );
+  }
+
+  void goHome() {
+    FocusScope.of(context).unfocus();
+
+    if (scrollController.hasClients) {
+      scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOutCubic,
+      );
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Home'),
+        duration: Duration(milliseconds: 700),
       ),
     );
   }
@@ -2893,7 +2952,8 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Container(color: Colors.black.withOpacity(0.66)),
           ),
           SafeArea(
-            child: SingleChildScrollView(
+            SingleChildScrollView(
+              controller: scrollController,
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 90),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -2955,7 +3015,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       bottomNavigationBar: BottomNav(
-        onHome: () {},
+        onHome: goHome,
         onSaved: openSavedDialog,
         onPremium: showPremiumPopup,
         onMore: openMoreMenu,
