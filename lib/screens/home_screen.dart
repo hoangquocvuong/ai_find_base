@@ -91,10 +91,6 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
 
     initializeApp();
-
-    loadBannerAd();
-    loadInterstitialAd();
-    loadRewardedAd();
     initPurchases();
   }
 
@@ -202,6 +198,14 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     }
+
+    if (isSubscriber) {
+      disposeAdsForPremium();
+    } else {
+      loadBannerAd();
+      loadInterstitialAd();
+      loadRewardedAd();
+    }
   }
 
   Future<void> loadTotalBases() async {
@@ -288,7 +292,42 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void disposeAdsForPremium() {
+    bannerAd?.dispose();
+    bannerAd = null;
+    bannerReady = false;
+
+    interstitialAd?.dispose();
+    interstitialAd = null;
+    interstitialReady = false;
+
+    rewardedAd?.dispose();
+    rewardedAd = null;
+    rewardedReady = false;
+    rewardedLoading = false;
+    rewardedShowing = false;
+
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  void showPremiumNoAdsMessage() {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('👑 Premium is active: unlimited searches and no ads.'),
+      ),
+    );
+  }
+
   void watchAdMock() {
+    if (isSubscriber) {
+      showPremiumNoAdsMessage();
+      return;
+    }
+
     showRewardAd(
       onRewardEarned: rewardSuccess,
       unavailableMessage:
@@ -297,6 +336,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void loadBannerAd() {
+    if (isSubscriber) {
+      disposeAdsForPremium();
+      return;
+    }
+
     bannerAd?.dispose();
 
     bannerAd = BannerAd(
@@ -304,10 +348,13 @@ class _HomeScreenState extends State<HomeScreen> {
       size: AdSize.banner,
       request: const AdRequest(),
       listener: BannerAdListener(
-        onAdLoaded: (_) {
+        onAdLoaded: (ad) {
           debugPrint('Banner loaded');
 
-          if (!mounted) return;
+          if (!mounted || isSubscriber) {
+            ad.dispose();
+            return;
+          }
 
           setState(() {
             bannerReady = true;
@@ -331,11 +378,23 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void loadInterstitialAd() {
+    if (isSubscriber) {
+      interstitialAd?.dispose();
+      interstitialAd = null;
+      interstitialReady = false;
+      return;
+    }
+
     InterstitialAd.load(
       adUnitId: iosInterstitialAdUnitId,
       request: const AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (ad) {
+          if (isSubscriber) {
+            ad.dispose();
+            return;
+          }
+
           interstitialAd = ad;
           interstitialReady = true;
         },
@@ -361,6 +420,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void loadRewardedAd({bool force = false}) {
+    if (isSubscriber) {
+      rewardedAd?.dispose();
+      rewardedAd = null;
+      rewardedReady = false;
+      rewardedLoading = false;
+      return;
+    }
+
     if (rewardedLoading) return;
 
     if (!force && rewardedAd != null && rewardedReady) return;
@@ -373,6 +440,14 @@ class _HomeScreenState extends State<HomeScreen> {
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (ad) {
           debugPrint('Rewarded loaded');
+
+          if (isSubscriber) {
+            ad.dispose();
+            rewardedAd = null;
+            rewardedReady = false;
+            rewardedLoading = false;
+            return;
+          }
 
           rewardedAd?.dispose();
           rewardedAd = ad;
@@ -398,12 +473,13 @@ class _HomeScreenState extends State<HomeScreen> {
             setState(() {});
           }
 
-          rewardedRetryCount++;
+          if (isSubscriber) return;
 
+          rewardedRetryCount++;
           final retrySeconds = rewardedRetryCount <= 2 ? 4 : 10;
 
           Future.delayed(Duration(seconds: retrySeconds), () {
-            if (!mounted) return;
+            if (!mounted || isSubscriber) return;
             loadRewardedAd(force: true);
           });
         },
@@ -442,12 +518,17 @@ class _HomeScreenState extends State<HomeScreen> {
     String unavailableMessage =
     'Video reward is temporarily unavailable. Please try again in a moment.',
   }) async {
+    if (isSubscriber) {
+      showPremiumNoAdsMessage();
+      return;
+    }
+
     if (rewardedShowing) return;
 
     if (!rewardedReady || rewardedAd == null) {
       loadRewardedAd(force: true);
 
-      if (!mounted) return;
+      if (!mounted || isSubscriber) return;
 
       showRewardUnavailableDialog(
         message: unavailableMessage,
@@ -455,7 +536,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Navigator.pop(context);
 
           Future.delayed(const Duration(milliseconds: 700), () {
-            if (!mounted) return;
+            if (!mounted || isSubscriber) return;
 
             showRewardAd(
               onRewardEarned: onRewardEarned,
@@ -486,9 +567,12 @@ class _HomeScreenState extends State<HomeScreen> {
         rewardedShowing = false;
 
         ad.dispose();
-        loadRewardedAd(force: true);
 
-        if (!rewardEarned && mounted) {
+        if (!isSubscriber) {
+          loadRewardedAd(force: true);
+        }
+
+        if (!rewardEarned && mounted && !isSubscriber) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Video was closed before the reward was completed.'),
@@ -504,9 +588,12 @@ class _HomeScreenState extends State<HomeScreen> {
         rewardedShowing = false;
 
         ad.dispose();
-        loadRewardedAd(force: true);
 
-        if (!mounted) return;
+        if (!isSubscriber) {
+          loadRewardedAd(force: true);
+        }
+
+        if (!mounted || isSubscriber) return;
 
         showRewardUnavailableDialog(
           message: unavailableMessage,
@@ -514,7 +601,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Navigator.pop(context);
 
             Future.delayed(const Duration(milliseconds: 700), () {
-              if (!mounted) return;
+              if (!mounted || isSubscriber) return;
 
               showRewardAd(
                 onRewardEarned: onRewardEarned,
@@ -537,6 +624,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void maybeShowInterstitialAd() {
+    if (isSubscriber) return;
+
     if (!interstitialReady || interstitialAd == null) {
       loadInterstitialAd();
       return;
@@ -550,12 +639,16 @@ class _HomeScreenState extends State<HomeScreen> {
     ad.fullScreenContentCallback = FullScreenContentCallback(
       onAdDismissedFullScreenContent: (ad) {
         ad.dispose();
-        loadInterstitialAd();
+        if (!isSubscriber) {
+          loadInterstitialAd();
+        }
       },
       onAdFailedToShowFullScreenContent: (ad, error) {
         debugPrint('Interstitial show failed: ${error.message}');
         ad.dispose();
-        loadInterstitialAd();
+        if (!isSubscriber) {
+          loadInterstitialAd();
+        }
       },
     );
 
@@ -652,9 +745,11 @@ class _HomeScreenState extends State<HomeScreen> {
       isSubscriber = true;
     });
 
+    disposeAdsForPremium();
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('👑 Premium activated'),
+        content: Text('👑 Premium activated: unlimited searches and no ads.'),
       ),
     );
   }
@@ -704,6 +799,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void showPremiumPopup() {
+    if (isSubscriber) {
+      showPremiumNoAdsMessage();
+      return;
+    }
+
     ProductDetails? monthly;
     ProductDetails? yearly;
 
@@ -1588,6 +1688,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void showRewardAdForPremiumBase(BaseResult item) {
+    if (isSubscriber) {
+      openBaseLink(item);
+      return;
+    }
+
     pendingPremiumBase = item;
 
     showRewardAd(
@@ -1709,136 +1814,9 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           const SizedBox(height: 24),
-
           buildAdBanner(),
-
           const SizedBox(height: 20),
-
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-
-              Expanded(
-
-                child: Column(
-
-                  crossAxisAlignment:
-                  CrossAxisAlignment.start,
-
-                  mainAxisAlignment:
-                  MainAxisAlignment.center,
-
-                  children: [
-
-                    Text(
-
-                      '▶ Watch Ad = +2 free searches',
-
-                      maxLines: 1,
-
-                      overflow:
-                      TextOverflow.ellipsis,
-
-                      style: TextStyle(
-
-                        color:
-                        Colors.white.withOpacity(.82),
-
-                        fontSize: 13,
-
-                        height: 1.0,
-
-                      ),
-
-                    ),
-
-                    const SizedBox(height: 2),
-
-                    Text(
-
-                      '👑 Premium = Unlimited',
-
-                      style: TextStyle(
-
-                        color:
-                        Colors.white.withOpacity(.82),
-
-                        fontSize: 13,
-
-                        height: 1.0,
-
-                      ),
-
-                    ),
-
-                  ],
-
-                ),
-
-              ),
-
-              const SizedBox(width: 12),
-
-              SizedBox(
-
-                height: 46,
-
-                child: ElevatedButton.icon(
-
-                  onPressed: watchAdMock,
-
-                  icon: const Icon(
-
-                    Icons.play_arrow_rounded,
-
-                    size: 18,
-
-                  ),
-
-                  label: const Text(
-
-                    'Watch Ad (+2)',
-
-                    style: TextStyle(
-
-                      fontSize: 14,
-
-                      fontWeight:
-                      FontWeight.w800,
-
-                    ),
-
-                  ),
-
-                  style: ElevatedButton.styleFrom(
-
-                    backgroundColor:
-                    const Color(0xFF7C3AED),
-
-                    foregroundColor:
-                    Colors.white,
-
-                    padding:
-                    const EdgeInsets.symmetric(
-                      horizontal: 14,
-                    ),
-
-                    shape: RoundedRectangleBorder(
-
-                      borderRadius:
-                      BorderRadius.circular(16),
-
-                    ),
-
-                  ),
-
-                ),
-
-              ),
-
-            ],
-
-          ),
+          buildWatchAdCreditRow(),
         ],
       ),
     );
@@ -1887,42 +1865,30 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _premiumStatBlock() {
     return InkWell(
       borderRadius: BorderRadius.circular(14),
-
-      onTap: showPremiumPopup,
-
+      onTap: isSubscriber ? showPremiumNoAdsMessage : showPremiumPopup,
       child: Column(
         children: [
           const Text(
             'Premium',
-
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w800,
               color: Colors.white,
             ),
           ),
-
           const SizedBox(height: 6),
-
-          Text(
-            isSubscriber
-                ? 'No Ads'
-                : 'No Ads',
-
+          const Text(
+            'No Ads',
             textAlign: TextAlign.center,
-
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w900,
               color: Color(0xFFFACC15),
             ),
           ),
-
           const SizedBox(height: 4),
-
           Text(
-            'tap to upgrade',
-
+            isSubscriber ? 'active' : 'tap to upgrade',
             style: TextStyle(
               fontSize: 11,
               color: Colors.white.withOpacity(.65),
@@ -1942,7 +1908,87 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget buildWatchAdCreditRow() {
+    final bool disabled = isSubscriber;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                disabled
+                    ? '👑 Premium active: no ads needed'
+                    : '▶ Watch Ad = +2 free searches',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: disabled
+                      ? const Color(0xFFFACC15).withOpacity(.86)
+                      : Colors.white.withOpacity(.82),
+                  fontSize: 13,
+                  height: 1.0,
+                  fontWeight: disabled ? FontWeight.w800 : FontWeight.w400,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                disabled ? 'Unlimited searches are already unlocked' : '👑 Premium = Unlimited',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(.82),
+                  fontSize: 13,
+                  height: 1.0,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        SizedBox(
+          height: 46,
+          child: ElevatedButton.icon(
+            onPressed: disabled ? showPremiumNoAdsMessage : watchAdMock,
+            icon: Icon(
+              disabled ? Icons.workspace_premium_rounded : Icons.play_arrow_rounded,
+              size: 18,
+            ),
+            label: Text(
+              disabled ? 'No Ads Active' : 'Watch Ad (+2)',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: disabled
+                  ? const Color(0xFF374151)
+                  : const Color(0xFF7C3AED),
+              foregroundColor: disabled
+                  ? const Color(0xFFFACC15)
+                  : Colors.white,
+              disabledBackgroundColor: const Color(0xFF374151),
+              disabledForegroundColor: const Color(0xFFFACC15),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget buildAdBanner() {
+    if (isSubscriber) {
+      return const SizedBox.shrink();
+    }
+
     if (!bannerReady || bannerAd == null) {
       return const SizedBox(
         height: 50,
