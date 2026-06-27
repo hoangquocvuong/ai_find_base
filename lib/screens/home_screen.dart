@@ -50,6 +50,9 @@ class _HomeScreenState extends State<HomeScreen> {
   bool bannerReady = false;
   bool interstitialReady = false;
   bool rewardedReady = false;
+  bool rewardedLoading = false;
+  bool rewardedShowing = false;
+  int rewardedRetryCount = 0;
 
   Set<String> likedBases = {};
   Set<String> dislikedBases = {};
@@ -275,14 +278,22 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     if (totalSearchCount % 2 == 0) {
-      showRewardAd();
+      await showRewardAd(
+        onRewardEarned: rewardSuccess,
+        unavailableMessage:
+        'Video reward is temporarily unavailable. Please try again in a moment.',
+      );
     } else {
       await searchSimilarBases();
     }
   }
 
   void watchAdMock() {
-    showRewardAd();
+    showRewardAd(
+      onRewardEarned: rewardSuccess,
+      unavailableMessage:
+      'Video reward is temporarily unavailable. Please try again in a moment.',
+    );
   }
 
   void loadBannerAd() {
@@ -349,15 +360,26 @@ class _HomeScreenState extends State<HomeScreen> {
 
   }
 
-  void loadRewardedAd() {
+  void loadRewardedAd({bool force = false}) {
+    if (rewardedLoading) return;
+
+    if (!force && rewardedAd != null && rewardedReady) return;
+
+    rewardedLoading = true;
+
     RewardedAd.load(
       adUnitId: iosRewardedAdUnitId,
       request: const AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (ad) {
           debugPrint('Rewarded loaded');
+
+          rewardedAd?.dispose();
           rewardedAd = ad;
+
           rewardedReady = true;
+          rewardedLoading = false;
+          rewardedRetryCount = 0;
 
           if (mounted) {
             setState(() {});
@@ -370,12 +392,147 @@ class _HomeScreenState extends State<HomeScreen> {
 
           rewardedAd = null;
           rewardedReady = false;
+          rewardedLoading = false;
 
           if (mounted) {
             setState(() {});
           }
+
+          rewardedRetryCount++;
+
+          final retrySeconds = rewardedRetryCount <= 2 ? 4 : 10;
+
+          Future.delayed(Duration(seconds: retrySeconds), () {
+            if (!mounted) return;
+            loadRewardedAd(force: true);
+          });
         },
       ),
+    );
+  }
+
+  void showRewardUnavailableDialog({
+    required String message,
+    required VoidCallback onTryAgain,
+  }) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (_) {
+        return AlertDialog(
+          title: const Text('Video Reward'),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+            FilledButton(
+              onPressed: onTryAgain,
+              child: const Text('Try Again'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> showRewardAd({
+    required Future<void> Function() onRewardEarned,
+    String unavailableMessage =
+    'Video reward is temporarily unavailable. Please try again in a moment.',
+  }) async {
+    if (rewardedShowing) return;
+
+    if (!rewardedReady || rewardedAd == null) {
+      loadRewardedAd(force: true);
+
+      if (!mounted) return;
+
+      showRewardUnavailableDialog(
+        message: unavailableMessage,
+        onTryAgain: () {
+          Navigator.pop(context);
+
+          Future.delayed(const Duration(milliseconds: 700), () {
+            if (!mounted) return;
+
+            showRewardAd(
+              onRewardEarned: onRewardEarned,
+              unavailableMessage: unavailableMessage,
+            );
+          });
+        },
+      );
+
+      return;
+    }
+
+    final ad = rewardedAd!;
+
+    rewardedAd = null;
+    rewardedReady = false;
+    rewardedShowing = true;
+
+    bool rewardEarned = false;
+
+    ad.fullScreenContentCallback = FullScreenContentCallback(
+      onAdShowedFullScreenContent: (ad) {
+        debugPrint('Rewarded ad showed');
+      },
+      onAdDismissedFullScreenContent: (ad) {
+        debugPrint('Rewarded ad dismissed');
+
+        rewardedShowing = false;
+
+        ad.dispose();
+        loadRewardedAd(force: true);
+
+        if (!rewardEarned && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Video was closed before the reward was completed.'),
+            ),
+          );
+        }
+      },
+      onAdFailedToShowFullScreenContent: (ad, error) {
+        debugPrint(
+          'Rewarded show failed: code=${error.code}, domain=${error.domain}, message=${error.message}',
+        );
+
+        rewardedShowing = false;
+
+        ad.dispose();
+        loadRewardedAd(force: true);
+
+        if (!mounted) return;
+
+        showRewardUnavailableDialog(
+          message: unavailableMessage,
+          onTryAgain: () {
+            Navigator.pop(context);
+
+            Future.delayed(const Duration(milliseconds: 700), () {
+              if (!mounted) return;
+
+              showRewardAd(
+                onRewardEarned: onRewardEarned,
+                unavailableMessage: unavailableMessage,
+              );
+            });
+          },
+        );
+      },
+    );
+
+    await ad.show(
+      onUserEarnedReward: (ad, reward) async {
+        debugPrint('Reward earned: ${reward.amount} ${reward.type}');
+
+        rewardEarned = true;
+        await onRewardEarned();
+      },
     );
   }
 
@@ -403,86 +560,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     ad.show();
-  }
-
-  void showRewardAd() {
-    if (!rewardedReady || rewardedAd == null) {
-      loadRewardedAd();
-
-      if (!mounted) return;
-
-      showDialog(
-        context: context,
-        barrierDismissible: true,
-        builder: (_) {
-          return AlertDialog(
-            title: const Text('Rewarded Ad'),
-            content: const Text(
-              'Rewarded ads are currently unavailable.\n\n'
-                  'Please try again later.',
-            ),
-            actions: [
-              FilledButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
-              ),
-            ],
-          );
-        },
-      );
-
-      return;
-    }
-
-    final ad = rewardedAd!;
-
-    rewardedAd = null;
-    rewardedReady = false;
-
-    ad.fullScreenContentCallback = FullScreenContentCallback(
-      onAdShowedFullScreenContent: (ad) {
-        debugPrint('Rewarded ad showed');
-      },
-      onAdDismissedFullScreenContent: (ad) {
-        debugPrint('Rewarded ad dismissed');
-        ad.dispose();
-        loadRewardedAd();
-      },
-      onAdFailedToShowFullScreenContent: (ad, error) {
-        debugPrint('Rewarded show failed: ${error.message}');
-        ad.dispose();
-        loadRewardedAd();
-
-        if (!mounted) return;
-
-        showDialog(
-          context: context,
-          barrierDismissible: true,
-          builder: (_) {
-            return AlertDialog(
-              title: const Text('Rewarded Ad'),
-              content: const Text(
-                'Rewarded ads are currently unavailable.\n\n'
-                    'Please try again later.',
-              ),
-              actions: [
-                FilledButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('OK'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-
-    ad.show(
-      onUserEarnedReward: (ad, reward) async {
-        debugPrint('Reward earned: ${reward.amount} ${reward.type}');
-        await rewardSuccess();
-      },
-    );
   }
 
   Future<void> rewardSuccess() async {
@@ -1513,48 +1590,10 @@ class _HomeScreenState extends State<HomeScreen> {
   void showRewardAdForPremiumBase(BaseResult item) {
     pendingPremiumBase = item;
 
-    if (!rewardedReady || rewardedAd == null) {
-      loadRewardedAd();
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Ad is still loading. Please try again in a few seconds.'),
-        ),
-      );
-
-      return;
-    }
-
-    final ad = rewardedAd!;
-
-    rewardedAd = null;
-    rewardedReady = false;
-
-    ad.fullScreenContentCallback = FullScreenContentCallback(
-      onAdDismissedFullScreenContent: (ad) {
-        ad.dispose();
-        loadRewardedAd();
-
-        if (pendingPremiumBase == item) {
-          pendingPremiumBase = null;
-        }
-      },
-      onAdFailedToShowFullScreenContent: (ad, error) {
-        ad.dispose();
-        loadRewardedAd();
-
-        if (pendingPremiumBase == item) {
-          pendingPremiumBase = null;
-        }
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ad failed to show: ${error.message}')),
-        );
-      },
-    );
-
-    ad.show(
-      onUserEarnedReward: (ad, reward) async {
+    showRewardAd(
+      unavailableMessage:
+      'Video reward is temporarily unavailable. Please try again in a moment or upgrade to Premium to unlock instantly.',
+      onRewardEarned: () async {
         final itemToOpen = pendingPremiumBase;
         pendingPremiumBase = null;
 
