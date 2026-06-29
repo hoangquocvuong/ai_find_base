@@ -39,7 +39,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   bool loading = false;
   bool isSubscriber = false;
-  bool dailyBonusPopupPending = false;
 
   List<BaseResult> results = [];
   List<BaseResult> savedBases = [];
@@ -105,28 +104,6 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  void showDailyBonusPopup() {
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (_) {
-        return AlertDialog(
-          title: const Text('🎁 Daily Login Reward'),
-          content: const Text(
-            '+2 Search Credits added!\n\n'
-                'Open the app every day to receive more free AI searches.',
-          ),
-          actions: [
-            FilledButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Awesome!'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   Future<void> initializeApp() async {
     final prefs = await SharedPreferences.getInstance();
 
@@ -138,66 +115,23 @@ class _HomeScreenState extends State<HomeScreen> {
     await loadTotalBases();
     await loadPremiumLinkMap();
 
+    /*
+      New user free credits:
+      - Old logic: +5 free searches + welcome popup.
+      - New logic: +3 free searches silently.
+      - Daily login +2 popup has been removed completely.
+    */
     final welcomeShown = prefs.getBool('welcome_bonus_shown') ?? false;
 
     if (!welcomeShown) {
-      freeSearchLeft += 5;
+      freeSearchLeft += 3;
 
       await prefs.setBool('welcome_bonus_shown', true);
-      await prefs.setInt('free_search_left', freeSearchLeft);
-      await prefs.setString(
-        'daily_bonus_day',
-        DateTime.now().toIso8601String().substring(0, 10),
-      );
-
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-
-        showDialog(
-          context: context,
-          builder: (_) {
-            return AlertDialog(
-              title: const Text('🎉 Welcome to AI Find Base'),
-              content: const Text(
-                'Congratulations!\n\n'
-                    'You received 5 FREE AI searches without ads.\n\n'
-                    'Find similar Clash of Clans bases instantly.\n\n'
-                    'Have a great day!',
-              ),
-              actions: [
-                FilledButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Let’s Go 🚀'),
-                ),
-              ],
-            );
-          },
-        );
-      });
-    }
-
-    final today = DateTime.now().toIso8601String().substring(0, 10);
-    final lastBonus = prefs.getString('daily_bonus_day') ?? '';
-
-    if (lastBonus != today) {
-      freeSearchLeft += 2;
-      dailyBonusPopupPending = true;
-
-      await prefs.setString('daily_bonus_day', today);
       await prefs.setInt('free_search_left', freeSearchLeft);
     }
 
     if (mounted) {
       setState(() {});
-
-      if (dailyBonusPopupPending) {
-        dailyBonusPopupPending = false;
-
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          showDailyBonusPopup();
-        });
-      }
     }
 
     if (isSubscriber) {
@@ -657,7 +591,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> rewardSuccess() async {
-    freeSearchLeft += 2;
+    freeSearchLeft += 1;
 
     await saveUsage();
 
@@ -667,7 +601,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('🎉 You received +2 free searches'),
+        content: Text('🎉 You received +1 free search'),
       ),
     );
   }
@@ -724,9 +658,12 @@ class _HomeScreenState extends State<HomeScreen> {
       List<PurchaseDetails> purchases,
       ) async {
     for (final purchase in purchases) {
-      if (purchase.status == PurchaseStatus.purchased ||
-          purchase.status == PurchaseStatus.restored) {
-        await unlockPremium();
+      if (purchase.status == PurchaseStatus.purchased) {
+        await unlockPremium(showActivatedMessage: true);
+      }
+
+      if (purchase.status == PurchaseStatus.restored) {
+        await unlockPremium(showActivatedMessage: false);
       }
 
       if (purchase.pendingCompletePurchase) {
@@ -735,8 +672,12 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> unlockPremium() async {
+  Future<void> unlockPremium({
+    bool showActivatedMessage = false,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
+
+    final wasSubscriber = prefs.getBool('is_subscriber') ?? false;
 
     await prefs.setBool('is_subscriber', true);
 
@@ -748,11 +689,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
     disposeAdsForPremium();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('👑 Premium activated: unlimited searches and no ads.'),
-      ),
-    );
+    /*
+      Only show this message after a real new purchase.
+      Do not show it during automatic restore on app launch.
+    */
+    if (showActivatedMessage && !wasSubscriber) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('👑 Premium activated: unlimited searches and no ads.'),
+        ),
+      );
+    }
   }
 
   Future<void> restorePremium() async {
@@ -1244,6 +1191,24 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+  void scrollToAnalysisProgress() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !scrollController.hasClients) return;
+
+      final position = scrollController.position;
+      final target = (scrollController.offset + 260).clamp(
+        position.minScrollExtent,
+        position.maxScrollExtent,
+      );
+
+      scrollController.animateTo(
+        target,
+        duration: const Duration(milliseconds: 420),
+        curve: Curves.easeOutCubic,
+      );
+    });
+  }
+
   Future<void> searchSimilarBases() async {
     if (selectedImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1265,6 +1230,8 @@ class _HomeScreenState extends State<HomeScreen> {
       loading = true;
       results.clear();
     });
+
+    scrollToAnalysisProgress();
 
     try {
       final uri = Uri.parse(
@@ -1924,7 +1891,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Text(
                 disabled
                     ? '👑 Premium active: no ads needed'
-                    : '▶ Watch Ad = +2 free searches',
+                    : '▶ Watch Ad = +1 free search',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -1960,7 +1927,7 @@ class _HomeScreenState extends State<HomeScreen> {
               size: 18,
             ),
             label: Text(
-              disabled ? 'No Ads Active' : 'Watch Ad (+2)',
+              disabled ? 'No Ads Active' : 'Watch Ad (+1)',
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
@@ -3113,7 +3080,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 16),
 
                   SearchButton(
-                    loading: false,
+                    loading: loading,
                     onPressed: () async {
                       if (loading) return;
                       await handleSearchLogic();
