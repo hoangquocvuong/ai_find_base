@@ -1,4 +1,6 @@
 class BaseResult {
+  final String id;
+  final String slug;
   final String title;
   final String level;
   final String baseType;
@@ -11,6 +13,8 @@ class BaseResult {
   final double score;
 
   BaseResult({
+    this.id = '',
+    this.slug = '',
     required this.title,
     required this.level,
     required this.baseType,
@@ -25,21 +29,27 @@ class BaseResult {
 
   factory BaseResult.fromJson(Map<String, dynamic> json) {
     return BaseResult(
-      title: json['title'] ?? '',
-      level: json['level'] ?? '',
-      baseType: json['baseType'] ?? '',
-      style: json['style'] ?? '',
-      defense: json['defense'] ?? '',
-      image: json['image'] ?? '',
-      postUrl: json['postUrl'] ?? '',
-      accessLink: json['accessLink'] ?? '',
+      id: json['id']?.toString() ?? '',
+      slug: json['slug']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
+      level: json['level']?.toString() ?? '',
+      baseType: json['baseType']?.toString() ?? '',
+      style: json['style']?.toString() ?? '',
+      defense: json['defense']?.toString() ?? '',
+      image: json['image']?.toString() ?? '',
+      postUrl: json['postUrl']?.toString() ?? '',
+      accessLink: json['accessLink']?.toString() ?? '',
       premium: json['premium'] == true,
-      score: (json['score'] ?? 0).toDouble(),
+      score: (json['score'] is num)
+          ? (json['score'] as num).toDouble()
+          : double.tryParse(json['score']?.toString() ?? '0') ?? 0.0,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
+      'id': id,
+      'slug': slug,
       'title': title,
       'level': level,
       'baseType': baseType,

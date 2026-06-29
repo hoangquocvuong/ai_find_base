@@ -31,6 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   File? selectedImage;
   String? selectedLevel;
+  String currentSearchId = '';
 
   int totalBases = 2633;
   int freeSearchLeft = 0;
@@ -1294,6 +1295,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
 
       final data = jsonDecode(body);
+      currentSearchId = data['searchId']?.toString() ?? '';
       final list = data['results'] as List<dynamic>? ?? [];
 
       results = list
@@ -2324,13 +2326,23 @@ class _HomeScreenState extends State<HomeScreen> {
         Uri.parse('https://api.cocbasepro.com/ai/feedback'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
+          'searchId': currentSearchId,
+          'feedback': like ? 'correct' : 'incorrect',
+
+          'selectedSlug': item.slug.isNotEmpty ? item.slug : item.id,
+          'selectedPostUrl': item.postUrl,
+
           'postUrl': item.postUrl,
           'title': item.title,
           'level': item.level,
           'baseType': item.baseType,
           'style': item.style,
-          'feedback': like ? 'like' : 'dislike',
-          'time': DateTime.now().toIso8601String(),
+          'defense': item.defense,
+          'accessLink': item.accessLink,
+          'image': item.image,
+          'premium': item.premium,
+          'score': item.score,
+          'time': DateTime.now().millisecondsSinceEpoch,
         }),
       );
     } catch (_) {}
@@ -2340,7 +2352,9 @@ class _HomeScreenState extends State<HomeScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          like ? '👍 Thanks! Your feedback helps improve AI search results' : '👎 Thanks! We will improve future AI results',
+          like
+              ? '👍 Thanks! Your feedback helps improve AI search results'
+              : '👎 Thanks! We will improve future AI results',
         ),
       ),
     );
