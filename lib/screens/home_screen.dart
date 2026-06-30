@@ -2131,49 +2131,34 @@ class _HomeScreenState extends State<HomeScreen> {
         Expanded(
           child: SizedBox(
             height: 50,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFF60A5FA),
-                    Color(0xFF2563EB),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF2563EB).withOpacity(0.25),
-                    blurRadius: 14,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
+            child: OutlinedButton.icon(
+              onPressed: pickImage,
+              icon: const Icon(
+                Icons.image_rounded,
+                size: 20,
+                color: Color(0xFF60A5FA),
               ),
-              child: ElevatedButton.icon(
-                onPressed: pickImage,
-                icon: const Icon(
-                  Icons.image_rounded,
-                  size: 19,
+              label: const Text(
+                'Choose Image',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
                 ),
-                label: const Text(
-                  'Choose Image',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
-                  ),
+              ),
+              style: OutlinedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                side: BorderSide(
+                  color: const Color(0xFF60A5FA).withOpacity(0.45),
+                  width: 1.3,
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  foregroundColor: Colors.white,
-                  shadowColor: Colors.transparent,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
               ),
             ),
@@ -2187,7 +2172,7 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: resetAll,
               icon: const Icon(
                 Icons.refresh_rounded,
-                size: 19,
+                size: 20,
               ),
               label: const Text(
                 'Reset',
@@ -2195,11 +2180,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 15,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.white,
+                backgroundColor: Colors.transparent,
+                elevation: 0,
                 side: BorderSide(
                   color: Colors.white.withOpacity(0.28),
                   width: 1.2,
@@ -3718,12 +3705,44 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   const SizedBox(height: 16),
 
-                  SearchButton(
-                    loading: loading,
-                    onPressed: () async {
-                      if (loading) return;
-                      await handleSearchLogic();
-                    },
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: OutlinedButton.icon(
+                      onPressed: loading
+                          ? null
+                          : () async {
+                        await handleSearchLogic();
+                      },
+                      icon: const Icon(
+                        Icons.auto_awesome_rounded,
+                        color: Color(0xFFFACC15),
+                        size: 22,
+                      ),
+                      label: Text(
+                        loading ? 'Searching...' : 'Find Similar Bases',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        disabledForegroundColor: Colors.white.withOpacity(0.55),
+                        backgroundColor: Colors.transparent,
+                        elevation: 0,
+                        side: BorderSide(
+                          color: const Color(0xFFFACC15).withOpacity(0.45),
+                          width: 1.4,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                      ),
+                    ),
                   ),
 
                   const SizedBox(height: 18),
