@@ -33,6 +33,14 @@ class _HomeScreenState extends State<HomeScreen> {
   String? selectedLevel;
   String currentSearchId = '';
 
+  int searchPage = 1;
+  String? lastSearchImagePath;
+  String? lastSearchLevel;
+  final Set<String> shownResultKeys = {};
+  bool analysisDialogVisible = false;
+
+  final GlobalKey aiResultsKey = GlobalKey();
+
   int totalBases = 2633;
   int freeSearchLeft = 0;
   int totalSearchCount = 0;
@@ -179,6 +187,10 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       selectedImage = File(file.path);
       results.clear();
+      searchPage = 1;
+      lastSearchImagePath = null;
+      lastSearchLevel = null;
+      shownResultKeys.clear();
     });
   }
 
@@ -188,6 +200,10 @@ class _HomeScreenState extends State<HomeScreen> {
       selectedLevel = null;
       results.clear();
       loading = false;
+      searchPage = 1;
+      lastSearchImagePath = null;
+      lastSearchLevel = null;
+      shownResultKeys.clear();
     });
   }
 
@@ -1249,11 +1265,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void scrollToAnalysisProgress() {
-    scrollToKey(
-      analysisProgressKey,
-      alignment: 0.16,
-      delayMs: 180,
-    );
+    // Kept for backward compatibility, but the visible analysis UI is now a popup.
   }
 
   void scrollToWatchAdCredits() {
@@ -1262,6 +1274,189 @@ class _HomeScreenState extends State<HomeScreen> {
       alignment: 0.18,
       delayMs: 80,
     );
+  }
+
+  void scrollToAiResults() {
+    scrollToKey(
+      aiResultsKey,
+      alignment: 0.08,
+      delayMs: 180,
+    );
+  }
+
+  String resultUniqueKey(BaseResult item) {
+    if (item.slug.trim().isNotEmpty) return item.slug.trim();
+    if (item.id.trim().isNotEmpty) return item.id.trim();
+    return item.postUrl.trim();
+  }
+
+  void showAnalysisPopup() {
+    if (!mounted || analysisDialogVisible) return;
+
+    analysisDialogVisible = true;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) {
+        return WillPopScope(
+          onWillPop: () async => false,
+          child: Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 26,
+              vertical: 24,
+            ),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+              decoration: BoxDecoration(
+                color: const Color(0xFF111827).withOpacity(0.97),
+                borderRadius: BorderRadius.circular(26),
+                border: Border.all(
+                  color: const Color(0xFFA855F7).withOpacity(0.42),
+                  width: 1.2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.45),
+                    blurRadius: 30,
+                    offset: const Offset(0, 16),
+                  ),
+                ],
+              ),
+              child: TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0.22, end: 0.92),
+                duration: const Duration(milliseconds: 1300),
+                curve: Curves.easeOutCubic,
+                builder: (context, value, _) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF7C3AED).withOpacity(0.25),
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: const Icon(
+                              Icons.auto_awesome_rounded,
+                              color: Color(0xFFFACC15),
+                              size: 30,
+                            ),
+                          ),
+                          const SizedBox(width: 13),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: const [
+                                Text(
+                                  'Analyzing AI Base Data...',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'Scanning verified layouts and ranking similar bases.',
+                                  style: TextStyle(
+                                    color: Color(0xFFE5E7EB),
+                                    fontSize: 13,
+                                    height: 1.25,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${(value * 100).round()}%',
+                            style: const TextStyle(
+                              color: Color(0xFFFACC15),
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(999),
+                        child: LinearProgressIndicator(
+                          minHeight: 9,
+                          value: value,
+                          backgroundColor: const Color(0xFF334155),
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                            Color(0xFFA855F7),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _analysisStep(
+                              icon: Icons.image_search_rounded,
+                              label: 'Reading image',
+                              done: true,
+                            ),
+                          ),
+                          Expanded(
+                            child: _analysisStep(
+                              icon: Icons.grid_view_rounded,
+                              label: 'Detecting base',
+                              done: true,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _analysisStep(
+                              icon: Icons.storage_rounded,
+                              label: 'Matching data',
+                              done: true,
+                            ),
+                          ),
+                          Expanded(
+                            child: _analysisStep(
+                              icon: Icons.leaderboard_rounded,
+                              label: 'Ranking results',
+                              done: false,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    ).then((_) {
+      analysisDialogVisible = false;
+    });
+  }
+
+  void closeAnalysisPopup() {
+    if (!mounted || !analysisDialogVisible) return;
+
+    analysisDialogVisible = false;
+
+    final navigator = Navigator.of(context, rootNavigator: true);
+
+    if (navigator.canPop()) {
+      navigator.pop();
+    }
   }
 
   Future<void> searchSimilarBases() async {
@@ -1281,20 +1476,42 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
+    final imagePath = selectedImage!.path;
+    final levelValue = selectedLevel!;
+
+    final sameSearch =
+        lastSearchImagePath == imagePath && lastSearchLevel == levelValue;
+
+    if (sameSearch) {
+      searchPage++;
+    } else {
+      searchPage = 1;
+      lastSearchImagePath = imagePath;
+      lastSearchLevel = levelValue;
+      shownResultKeys.clear();
+    }
+
     setState(() {
       loading = true;
       results.clear();
     });
 
-    scrollToAnalysisProgress();
+    showAnalysisPopup();
 
     try {
+      final params = <String, String>{
+        'level': levelValue,
+        'page': searchPage.toString(),
+      };
+
+      if (shownResultKeys.isNotEmpty) {
+        params['exclude'] = shownResultKeys.join(',');
+      }
+
       final uri = Uri.parse(
         'https://api.cocbasepro.com/ai/search',
       ).replace(
-        queryParameters: {
-          'level': selectedLevel!,
-        },
+        queryParameters: params,
       );
 
       final request = http.MultipartRequest('POST', uri);
@@ -1302,7 +1519,7 @@ class _HomeScreenState extends State<HomeScreen> {
       request.files.add(
         await http.MultipartFile.fromPath(
           'file',
-          selectedImage!.path,
+          imagePath,
         ),
       );
 
@@ -1328,6 +1545,14 @@ class _HomeScreenState extends State<HomeScreen> {
       )
           .toList();
 
+      for (final item in results) {
+        final key = resultUniqueKey(item);
+
+        if (key.isNotEmpty) {
+          shownResultKeys.add(key);
+        }
+      }
+
       if (results.isEmpty && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('No similar base found')),
@@ -1340,10 +1565,14 @@ class _HomeScreenState extends State<HomeScreen> {
         SnackBar(content: Text('AI Finder error: $e')),
       );
     } finally {
+      closeAnalysisPopup();
+
       if (mounted) {
         setState(() {
           loading = false;
         });
+
+        scrollToAiResults();
       }
     }
   }
@@ -2267,6 +2496,12 @@ class _HomeScreenState extends State<HomeScreen> {
     if (value == null) return;
 
     setState(() {
+      if (selectedLevel != value) {
+        searchPage = 1;
+        lastSearchLevel = null;
+        shownResultKeys.clear();
+      }
+
       selectedLevel = value;
     });
   }
@@ -3222,13 +3457,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                   ),
 
-                  const SizedBox(height: 12),
-
-                  buildAnalysisProgressCard(),
-
                   const SizedBox(height: 18),
 
-                  buildAiResultsHeader(),
+                  KeyedSubtree(
+                    key: aiResultsKey,
+                    child: buildAiResultsHeader(),
+                  ),
 
                   const SizedBox(height: 10),
 
