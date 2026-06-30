@@ -2131,28 +2131,49 @@ class _HomeScreenState extends State<HomeScreen> {
         Expanded(
           child: SizedBox(
             height: 50,
-            child: ElevatedButton.icon(
-              onPressed: pickImage,
-              icon: const Icon(
-                Icons.image_rounded,
-                size: 19,
-              ),
-              label: const Text(
-                'Choose Image',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w900,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF60A5FA),
+                    Color(0xFF2563EB),
+                  ],
                 ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF2563EB).withOpacity(0.25),
+                    blurRadius: 14,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
               ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFACC15),
-                foregroundColor: const Color(0xFF111827),
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+              child: ElevatedButton.icon(
+                onPressed: pickImage,
+                icon: const Icon(
+                  Icons.image_rounded,
+                  size: 19,
+                ),
+                label: const Text(
+                  'Choose Image',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  foregroundColor: Colors.white,
+                  shadowColor: Colors.transparent,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
               ),
             ),
@@ -2203,23 +2224,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Column(
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 12,
-            ),
-            decoration: BoxDecoration(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(
-                color: const Color(0xFFFACC15).withOpacity(0.38),
-                width: 1.2,
-              ),
-            ),
-            child: Row(
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+            color: const Color(0xFFFACC15).withOpacity(0.38),
+            width: 1.2,
+          ),
+        ),
+        child: Column(
+          children: [
+            Row(
               children: [
                 Expanded(
                   child: _statBlock(
@@ -2278,13 +2296,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 14),
-          buildWatchAdCreditRow(),
-          const SizedBox(height: 18),
-          buildAdBanner(),
-          const SizedBox(height: 20),
-        ],
+            const SizedBox(height: 14),
+            buildWatchAdCreditRow(),
+            if (!isSubscriber) ...[
+              const SizedBox(height: 14),
+              Divider(
+                color: Colors.white.withOpacity(0.13),
+                height: 1,
+                thickness: 1,
+              ),
+              const SizedBox(height: 12),
+              buildAdBanner(),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -2353,19 +2378,25 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            const Icon(
+              Icons.workspace_premium_rounded,
+              color: Color(0xFFFACC15),
+              size: 22,
+            ),
+            const SizedBox(height: 5),
             const Text(
               'Premium',
               textAlign: TextAlign.center,
               maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+              overflow: TextOverflow.visible,
               style: TextStyle(
-                fontSize: 22,
+                fontSize: 15,
                 fontWeight: FontWeight.w900,
                 color: Color(0xFFFACC15),
                 height: 1.0,
               ),
             ),
-            const SizedBox(height: 7),
+            const SizedBox(height: 5),
             const Text(
               'No Ads',
               textAlign: TextAlign.center,
@@ -2378,14 +2409,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 height: 1.0,
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Text(
               isSubscriber ? 'active' : 'tap upgrade',
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 10,
+                fontSize: 9.5,
                 color: Colors.white.withOpacity(.70),
                 fontWeight: FontWeight.w600,
                 height: 1.0,
@@ -2411,64 +2442,71 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return KeyedSubtree(
       key: watchAdCreditKey,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(
-            child: Text(
-              disabled
-                  ? '👑 Premium active: unlimited searches'
-                  : '▶ Watch Ad = +2 free searches',
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: disabled
-                    ? const Color(0xFFFACC15).withOpacity(.90)
-                    : Colors.white.withOpacity(.86),
-                fontSize: 13,
-                height: 1.15,
-                fontWeight: FontWeight.w700,
+      child: Center(
+        child: SizedBox(
+          height: 48,
+          width: disabled ? 190 : 176,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: disabled
+                  ? const LinearGradient(
+                colors: [
+                  Color(0xFF374151),
+                  Color(0xFF1F2937),
+                ],
+              )
+                  : const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF8B5CF6),
+                  Color(0xFF6D28D9),
+                ],
               ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: (disabled
+                      ? const Color(0xFF111827)
+                      : const Color(0xFF7C3AED))
+                      .withOpacity(0.30),
+                  blurRadius: 16,
+                  offset: const Offset(0, 7),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(width: 12),
-          SizedBox(
-            height: 46,
             child: ElevatedButton.icon(
               onPressed: disabled ? showPremiumNoAdsMessage : watchAdMock,
               icon: Icon(
                 disabled
                     ? Icons.workspace_premium_rounded
                     : Icons.play_arrow_rounded,
-                size: 18,
+                size: 19,
               ),
               label: Text(
-                disabled ? 'No Ads' : 'Watch Ad +2',
+                disabled ? 'No Ads Active' : 'Watch Ad +2',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  fontSize: 13,
+                  fontSize: 14,
                   fontWeight: FontWeight.w900,
                 ),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: disabled
-                    ? const Color(0xFF374151)
-                    : const Color(0xFF7C3AED),
+                backgroundColor: Colors.transparent,
                 foregroundColor: disabled
                     ? const Color(0xFFFACC15)
                     : Colors.white,
-                disabledBackgroundColor: const Color(0xFF374151),
-                disabledForegroundColor: const Color(0xFFFACC15),
+                shadowColor: Colors.transparent,
                 elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 13),
+                padding: const EdgeInsets.symmetric(horizontal: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
