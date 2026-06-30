@@ -253,7 +253,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     showOutOfFreeSearchMessage();
-    scrollToWatchAdCredits();
   }
 
   void showOutOfFreeSearchMessage() {
@@ -261,20 +260,129 @@ class _HomeScreenState extends State<HomeScreen> {
 
     ScaffoldMessenger.of(context).clearSnackBars();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        duration: const Duration(seconds: 5),
-        behavior: SnackBarBehavior.floating,
-        content: const Text(
-          'You have used all free searches. Watch a full video ad to receive +2 free searches.',
-        ),
-        action: SnackBarAction(
-          label: 'Watch Ad',
-          onPressed: () {
-            scrollToWatchAdCredits();
-          },
-        ),
-      ),
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (_) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 24,
+          ),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8F5FF),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.38),
+                  blurRadius: 28,
+                  offset: const Offset(0, 14),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFACC15).withOpacity(0.24),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Icon(
+                        Icons.play_circle_fill_rounded,
+                        color: Color(0xFFEAB308),
+                        size: 30,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'No Free Searches Left',
+                        style: TextStyle(
+                          color: Color(0xFF111827),
+                          fontSize: 21,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        color: Color(0xFF374151),
+                        size: 26,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 14),
+
+                Text(
+                  'You have used all free searches. Watch one full rewarded video to receive +2 free searches.',
+                  textAlign: TextAlign.left,
+                  style: TextStyle(
+                    color: Colors.black.withOpacity(0.66),
+                    fontSize: 15,
+                    height: 1.38,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+
+                const SizedBox(height: 18),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      watchAdMock();
+                    },
+                    icon: const Icon(Icons.play_arrow_rounded),
+                    label: const Text(
+                      'Watch Ad (+2)',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 15,
+                      ),
+                    ),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF7C3AED),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    'Maybe later',
+                    style: TextStyle(
+                      color: Color(0xFF6B7280),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -2005,6 +2113,76 @@ class _HomeScreenState extends State<HomeScreen> {
         .toList();
   }
 
+  Widget buildImageActionRow() {
+    return Row(
+      children: [
+        Expanded(
+          child: SizedBox(
+            height: 50,
+            child: ElevatedButton.icon(
+              onPressed: pickImage,
+              icon: const Icon(
+                Icons.image_rounded,
+                size: 19,
+              ),
+              label: const Text(
+                'Choose Image',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFACC15),
+                foregroundColor: const Color(0xFF111827),
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: SizedBox(
+            height: 50,
+            child: OutlinedButton.icon(
+              onPressed: resetAll,
+              icon: const Icon(
+                Icons.refresh_rounded,
+                size: 19,
+              ),
+              label: const Text(
+                'Reset',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                side: BorderSide(
+                  color: Colors.white.withOpacity(0.28),
+                  width: 1.2,
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget buildStatsPanel() {
     final safeLeft = freeSearchLeft < 0 ? 0 : freeSearchLeft;
     final maxCredit = safeLeft > 10 ? safeLeft : 10;
@@ -3434,13 +3612,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: ImagePickerBox(image: selectedImage),
                   ),
 
-                  // ✅ Tạo khoảng cách giữa khung ảnh và 2 nút
+                  // ✅ Choose Image + Reset nằm cùng 1 hàng cho gọn trên mobile
                   const SizedBox(height: 18),
 
-                  ActionButtons(
-                    onChoose: pickImage,
-                    onReset: resetAll,
-                  ),
+                  buildImageActionRow(),
 
                   // ✅ Tạo khoảng cách giữa 2 nút và chọn level
                   const SizedBox(height: 22),
