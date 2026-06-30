@@ -58,6 +58,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Set<String> dislikedBases = {};
   BaseResult? pendingPremiumBase;
 
+  final GlobalKey watchAdCreditKey = GlobalKey();
+  final GlobalKey analysisProgressKey = GlobalKey();
+
 
   static const String premiumMapUrl =
       'https://raw.githubusercontent.com/hoangquocvuong/premium-map.json/main/premium-map.json';
@@ -138,7 +141,9 @@ class _HomeScreenState extends State<HomeScreen> {
       disposeAdsForPremium();
     } else {
       loadBannerAd();
-      loadInterstitialAd();
+      // Do not preload/show interstitial ads on the AI search flow.
+      // Search must feel uninterrupted; rewarded video is shown only
+      // when the user explicitly taps Watch Ad (+2).
       loadRewardedAd();
     }
   }
@@ -187,15 +192,36 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> handleSearchLogic() async {
-    if (isSubscriber) {
-      await searchSimilarBases();
+    if (loading) return;
+
+    if (selectedImage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please choose an image first')),
+      );
       return;
     }
 
-    totalSearchCount++;
+    if (selectedLevel == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please choose TH/BH/CH level for best accuracy'),
+        ),
+      );
+      return;
+    }
 
-    if (totalSearchCount >= 4 && totalSearchCount % 4 == 0) {
-      maybeShowInterstitialAd();
+    // Count search attempts for the existing Premium popup cadence.
+    // Do not show interstitial ads here; Search Similar must never be interrupted.
+    totalSearchCount++;
+    await saveUsage();
+
+    if (!isSubscriber && totalSearchCount >= 10) {
+      await maybeShowPremiumPopup();
+    }
+
+    if (isSubscriber) {
+      await searchSimilarBases();
+      return;
     }
 
     if (freeSearchLeft > 0) {
@@ -210,21 +236,30 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    await saveUsage();
+    showOutOfFreeSearchMessage();
+    scrollToWatchAdCredits();
+  }
 
-    if (totalSearchCount >= 11) {
-      await maybeShowPremiumPopup();
-    }
+  void showOutOfFreeSearchMessage() {
+    if (!mounted) return;
 
-    if (totalSearchCount % 2 == 0) {
-      await showRewardAd(
-        onRewardEarned: rewardSuccess,
-        unavailableMessage:
-        'Video reward is temporarily unavailable. Please try again in a moment.',
-      );
-    } else {
-      await searchSimilarBases();
-    }
+    ScaffoldMessenger.of(context).clearSnackBars();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 5),
+        behavior: SnackBarBehavior.floating,
+        content: const Text(
+          'You have used all free searches. Watch a full video ad to receive +2 free searches.',
+        ),
+        action: SnackBarAction(
+          label: 'Watch Ad',
+          onPressed: () {
+            scrollToWatchAdCredits();
+          },
+        ),
+      ),
+    );
   }
 
   void disposeAdsForPremium() {
@@ -591,7 +626,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> rewardSuccess() async {
-    freeSearchLeft += 1;
+    freeSearchLeft += 2;
 
     await saveUsage();
 
@@ -601,7 +636,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('🎉 You received +1 free search'),
+        content: Text('🎉 You received +2 free searches'),
       ),
     );
   }
@@ -1191,22 +1226,42 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-  void scrollToAnalysisProgress() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !scrollController.hasClients) return;
+  void scrollToKey(
+      GlobalKey key, {
+        double alignment = 0.12,
+        int delayMs = 120,
+      }) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await Future.delayed(Duration(milliseconds: delayMs));
 
-      final position = scrollController.position;
-      final target = (scrollController.offset + 260).clamp(
-        position.minScrollExtent,
-        position.maxScrollExtent,
-      );
+      if (!mounted) return;
 
-      scrollController.animateTo(
-        target,
-        duration: const Duration(milliseconds: 420),
+      final context = key.currentContext;
+      if (context == null) return;
+
+      await Scrollable.ensureVisible(
+        context,
+        duration: const Duration(milliseconds: 460),
         curve: Curves.easeOutCubic,
+        alignment: alignment,
       );
     });
+  }
+
+  void scrollToAnalysisProgress() {
+    scrollToKey(
+      analysisProgressKey,
+      alignment: 0.16,
+      delayMs: 180,
+    );
+  }
+
+  void scrollToWatchAdCredits() {
+    scrollToKey(
+      watchAdCreditKey,
+      alignment: 0.18,
+      delayMs: 80,
+    );
   }
 
   Future<void> searchSimilarBases() async {
@@ -1880,76 +1935,79 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget buildWatchAdCreditRow() {
     final bool disabled = isSubscriber;
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                disabled
-                    ? '👑 Premium active: no ads needed'
-                    : '▶ Watch Ad = +1 free search',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: disabled
-                      ? const Color(0xFFFACC15).withOpacity(.86)
-                      : Colors.white.withOpacity(.82),
-                  fontSize: 13,
-                  height: 1.0,
-                  fontWeight: disabled ? FontWeight.w800 : FontWeight.w400,
+    return KeyedSubtree(
+      key: watchAdCreditKey,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  disabled
+                      ? '👑 Premium active: no ads needed'
+                      : '▶ Watch Ad = +2 free searches',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: disabled
+                        ? const Color(0xFFFACC15).withOpacity(.86)
+                        : Colors.white.withOpacity(.82),
+                    fontSize: 13,
+                    height: 1.0,
+                    fontWeight: disabled ? FontWeight.w800 : FontWeight.w400,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                disabled ? 'Unlimited searches are already unlocked' : '👑 Premium = Unlimited',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: Colors.white.withOpacity(.82),
-                  fontSize: 13,
-                  height: 1.0,
+                const SizedBox(height: 2),
+                Text(
+                  disabled ? 'Unlimited searches are already unlocked' : '👑 Premium = Unlimited',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(.82),
+                    fontSize: 13,
+                    height: 1.0,
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 12),
-        SizedBox(
-          height: 46,
-          child: ElevatedButton.icon(
-            onPressed: disabled ? showPremiumNoAdsMessage : watchAdMock,
-            icon: Icon(
-              disabled ? Icons.workspace_premium_rounded : Icons.play_arrow_rounded,
-              size: 18,
-            ),
-            label: Text(
-              disabled ? 'No Ads Active' : 'Watch Ad (+1)',
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: disabled
-                  ? const Color(0xFF374151)
-                  : const Color(0xFF7C3AED),
-              foregroundColor: disabled
-                  ? const Color(0xFFFACC15)
-                  : Colors.white,
-              disabledBackgroundColor: const Color(0xFF374151),
-              disabledForegroundColor: const Color(0xFFFACC15),
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
+              ],
             ),
           ),
-        ),
-      ],
+          const SizedBox(width: 12),
+          SizedBox(
+            height: 46,
+            child: ElevatedButton.icon(
+              onPressed: disabled ? showPremiumNoAdsMessage : watchAdMock,
+              icon: Icon(
+                disabled ? Icons.workspace_premium_rounded : Icons.play_arrow_rounded,
+                size: 18,
+              ),
+              label: Text(
+                disabled ? 'No Ads Active' : 'Watch Ad (+2)',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: disabled
+                    ? const Color(0xFF374151)
+                    : const Color(0xFF7C3AED),
+                foregroundColor: disabled
+                    ? const Color(0xFFFACC15)
+                    : Colors.white,
+                disabledBackgroundColor: const Color(0xFF374151),
+                disabledForegroundColor: const Color(0xFFFACC15),
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -2328,141 +2386,144 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget buildAnalysisProgressCard() {
-    if (!loading) return const SizedBox.shrink();
-
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.20, end: 0.86),
-      duration: const Duration(milliseconds: 1200),
-      curve: Curves.easeOutCubic,
-      builder: (context, value, _) {
-        return Container(
-          width: double.infinity,
-          margin: const EdgeInsets.only(top: 4, bottom: 18),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFF111827).withOpacity(0.95),
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(
-              color: const Color(0xFFA855F7).withOpacity(0.48),
+    return KeyedSubtree(
+      key: analysisProgressKey,
+      child: loading
+          ? TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0.20, end: 0.86),
+        duration: const Duration(milliseconds: 1200),
+        curve: Curves.easeOutCubic,
+        builder: (context, value, _) {
+          return Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(top: 4, bottom: 18),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF111827).withOpacity(0.95),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(
+                color: const Color(0xFFA855F7).withOpacity(0.48),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF7C3AED).withOpacity(0.22),
+                  blurRadius: 22,
+                  offset: const Offset(0, 10),
+                ),
+              ],
             ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF7C3AED).withOpacity(0.22),
-                blurRadius: 22,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF7C3AED).withOpacity(0.22),
-                      borderRadius: BorderRadius.circular(15),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF7C3AED).withOpacity(0.22),
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: const Icon(
+                        Icons.auto_awesome_rounded,
+                        color: Color(0xFFFACC15),
+                        size: 25,
+                      ),
                     ),
-                    child: const Icon(
-                      Icons.auto_awesome_rounded,
-                      color: Color(0xFFFACC15),
-                      size: 25,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Analyzing AI Base Data...',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w900,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Analyzing AI Base Data...',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          'Scanning internet layouts and ranking similar bases.',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.74),
-                            fontSize: 12.5,
-                            height: 1.25,
+                          const SizedBox(height: 3),
+                          Text(
+                            'Scanning internet layouts and ranking similar bases.',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.74),
+                              fontSize: 12.5,
+                              height: 1.25,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${(value * 100).round()}%',
-                    style: const TextStyle(
-                      color: Color(0xFFFACC15),
-                      fontSize: 15,
-                      fontWeight: FontWeight.w900,
+                    const SizedBox(width: 8),
+                    Text(
+                      '${(value * 100).round()}%',
+                      style: const TextStyle(
+                        color: Color(0xFFFACC15),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(999),
-                child: LinearProgressIndicator(
-                  minHeight: 8,
-                  value: value,
-                  backgroundColor: const Color(0xFF334155),
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    Color(0xFFA855F7),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    minHeight: 8,
+                    value: value,
+                    backgroundColor: const Color(0xFF334155),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      Color(0xFFA855F7),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _analysisStep(
-                      icon: Icons.image_search_rounded,
-                      label: 'Reading image',
-                      done: true,
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _analysisStep(
+                        icon: Icons.image_search_rounded,
+                        label: 'Reading image',
+                        done: true,
+                      ),
                     ),
-                  ),
-                  Expanded(
-                    child: _analysisStep(
-                      icon: Icons.grid_view_rounded,
-                      label: 'Detecting base',
-                      done: true,
+                    Expanded(
+                      child: _analysisStep(
+                        icon: Icons.grid_view_rounded,
+                        label: 'Detecting base',
+                        done: true,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: _analysisStep(
-                      icon: Icons.storage_rounded,
-                      label: 'Matching data',
-                      done: true,
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _analysisStep(
+                        icon: Icons.storage_rounded,
+                        label: 'Matching data',
+                        done: true,
+                      ),
                     ),
-                  ),
-                  Expanded(
-                    child: _analysisStep(
-                      icon: Icons.leaderboard_rounded,
-                      label: 'Ranking results',
-                      done: false,
+                    Expanded(
+                      child: _analysisStep(
+                        icon: Icons.leaderboard_rounded,
+                        label: 'Ranking results',
+                        done: false,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      )
+          : const SizedBox.shrink(),
     );
   }
 
@@ -2583,6 +2644,73 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void showImagePreview(BaseResult item) {
+    if (item.image.trim().isEmpty) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (_) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(14),
+          child: Stack(
+            children: [
+              GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  width: double.infinity,
+                  height: MediaQuery.of(context).size.height * 0.78,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.86),
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.18),
+                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(22),
+                    child: InteractiveViewer(
+                      minScale: 1,
+                      maxScale: 4,
+                      child: Center(
+                        child: Image.network(
+                          item.image,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) {
+                            return const Center(
+                              child: Icon(
+                                Icons.image_not_supported_rounded,
+                                color: Colors.white70,
+                                size: 48,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 10,
+                right: 10,
+                child: IconButton.filled(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close_rounded),
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.black.withOpacity(0.64),
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget buildResultCard(BaseResult item) {
     final percent =
     item.score <= 1 ? (item.score * 100).round() : item.score.round();
@@ -2630,21 +2758,24 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Stack(
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(15),
-                child: Image.network(
-                  item.image,
-                  width: 138,
-                  height: 126,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) {
-                    return Container(
-                      width: 138,
-                      height: 126,
-                      color: const Color(0xFF1F2937),
-                      child: const Icon(Icons.image_not_supported),
-                    );
-                  },
+              GestureDetector(
+                onTap: () => showImagePreview(item),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(15),
+                  child: Image.network(
+                    item.image,
+                    width: 138,
+                    height: 126,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) {
+                      return Container(
+                        width: 138,
+                        height: 126,
+                        color: const Color(0xFF1F2937),
+                        child: const Icon(Icons.image_not_supported),
+                      );
+                    },
+                  ),
                 ),
               ),
               Positioned(
@@ -3062,7 +3193,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   const SizedBox(height: 30),
 
-                  ImagePickerBox(image: selectedImage),
+                  GestureDetector(
+                    onTap: pickImage,
+                    behavior: HitTestBehavior.opaque,
+                    child: ImagePickerBox(image: selectedImage),
+                  ),
 
                   // ✅ Tạo khoảng cách giữa khung ảnh và 2 nút
                   const SizedBox(height: 18),
