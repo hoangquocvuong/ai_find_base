@@ -149,9 +149,8 @@ class _HomeScreenState extends State<HomeScreen> {
       disposeAdsForPremium();
     } else {
       loadBannerAd();
-      // Do not preload/show interstitial ads on the AI search flow.
-      // Search must feel uninterrupted; rewarded video is shown only
-      // when the user explicitly taps Watch Ad (+2).
+      // Search Similar must feel uninterrupted.
+      // Rewarded video is loaded only for explicit Watch Ad (+2).
       loadRewardedAd();
     }
   }
@@ -226,8 +225,15 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    // Count search attempts for the existing Premium popup cadence.
-    // Do not show interstitial ads here; Search Similar must never be interrupted.
+    /*
+      Final Search Similar logic:
+      - Search button never shows interstitial ads.
+      - No odd/even ad pattern.
+      - No ad interruption during search.
+      - From the 10th search attempt, show Premium popup using existing cadence:
+        max 3 times, each at least 2 days apart.
+      - If user has no free credits, show centered Watch Ad (+2) dialog.
+    */
     totalSearchCount++;
     await saveUsage();
 
@@ -242,6 +248,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (freeSearchLeft > 0) {
       freeSearchLeft--;
+
       await saveUsage();
 
       if (mounted) {
@@ -255,10 +262,9 @@ class _HomeScreenState extends State<HomeScreen> {
     showOutOfFreeSearchMessage();
   }
 
+
   void showOutOfFreeSearchMessage() {
     if (!mounted) return;
-
-    ScaffoldMessenger.of(context).clearSnackBars();
 
     showDialog(
       context: context,
@@ -271,13 +277,17 @@ class _HomeScreenState extends State<HomeScreen> {
             vertical: 24,
           ),
           child: Container(
-            padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
             decoration: BoxDecoration(
-              color: const Color(0xFFF8F5FF),
+              color: const Color(0xFF111827).withOpacity(0.98),
               borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: const Color(0xFFFACC15).withOpacity(0.42),
+                width: 1.2,
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.38),
+                  color: Colors.black.withOpacity(0.42),
                   blurRadius: 28,
                   offset: const Offset(0, 14),
                 ),
@@ -292,12 +302,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFACC15).withOpacity(0.24),
+                        color: const Color(0xFFFACC15).withOpacity(0.18),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: const Icon(
                         Icons.play_circle_fill_rounded,
-                        color: Color(0xFFEAB308),
+                        color: Color(0xFFFACC15),
                         size: 30,
                       ),
                     ),
@@ -306,7 +316,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Text(
                         'No Free Searches Left',
                         style: TextStyle(
-                          color: Color(0xFF111827),
+                          color: Colors.white,
                           fontSize: 21,
                           fontWeight: FontWeight.w900,
                         ),
@@ -318,63 +328,87 @@ class _HomeScreenState extends State<HomeScreen> {
                       onPressed: () => Navigator.pop(context),
                       icon: const Icon(
                         Icons.close_rounded,
-                        color: Color(0xFF374151),
+                        color: Color(0xFFE5E7EB),
                         size: 26,
                       ),
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 14),
-
-                Text(
-                  'You have used all free searches. Watch one full rewarded video to receive +2 free searches.',
-                  textAlign: TextAlign.left,
-                  style: TextStyle(
-                    color: Colors.black.withOpacity(0.66),
-                    fontSize: 15,
-                    height: 1.38,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-
-                const SizedBox(height: 18),
-
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: FilledButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      watchAdMock();
-                    },
-                    icon: const Icon(Icons.play_arrow_rounded),
-                    label: const Text(
-                      'Watch Ad (+2)',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 15,
-                      ),
-                    ),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF7C3AED),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 8),
-
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    'Maybe later',
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Watch a full rewarded video to receive +2 free searches.',
                     style: TextStyle(
-                      color: Color(0xFF6B7280),
-                      fontWeight: FontWeight.w700,
+                      color: Color(0xFFE5E7EB),
+                      fontSize: 15,
+                      height: 1.35,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFFE5E7EB),
+                          side: BorderSide(
+                            color: Colors.white.withOpacity(0.28),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                        ),
+                        child: const Text(
+                          'Later',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          watchAdMock();
+                        },
+                        icon: const Icon(Icons.play_arrow_rounded),
+                        label: const Text(
+                          'Watch Ad (+2)',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFFFACC15),
+                          foregroundColor: Colors.black,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    showPremiumPopup();
+                  },
+                  child: const Text(
+                    'Upgrade to Premium for unlimited searches',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Color(0xFFC084FC),
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
@@ -385,6 +419,7 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
   }
+
 
   void disposeAdsForPremium() {
     bannerAd?.dispose();
@@ -718,36 +753,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void maybeShowInterstitialAd() {
-    if (isSubscriber) return;
-
-    if (!interstitialReady || interstitialAd == null) {
-      loadInterstitialAd();
-      return;
-    }
-
-    final ad = interstitialAd!;
-
-    interstitialAd = null;
-    interstitialReady = false;
-
-    ad.fullScreenContentCallback = FullScreenContentCallback(
-      onAdDismissedFullScreenContent: (ad) {
-        ad.dispose();
-        if (!isSubscriber) {
-          loadInterstitialAd();
-        }
-      },
-      onAdFailedToShowFullScreenContent: (ad, error) {
-        debugPrint('Interstitial show failed: ${error.message}');
-        ad.dispose();
-        if (!isSubscriber) {
-          loadInterstitialAd();
-        }
-      },
-    );
-
-    ad.show();
+    // Disabled by product logic:
+    // Search Similar must never show interstitial ads.
+    // Ads are only shown when the user explicitly taps Watch Ad (+2)
+    // after running out of free search credits, or when unlocking a premium base.
+    return;
   }
+
 
   Future<void> rewardSuccess() async {
     freeSearchLeft += 2;
@@ -873,23 +885,20 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
   Future<void> maybeShowPremiumPopup() async {
+    if (isSubscriber) return;
 
     final prefs = await SharedPreferences.getInstance();
 
-    int count =
-        prefs.getInt('premium_popup_count') ?? 0;
+    final count = prefs.getInt('premium_popup_count') ?? 0;
+    final last = prefs.getInt('premium_popup_last') ?? 0;
+    final now = DateTime.now().millisecondsSinceEpoch;
 
-    int last =
-        prefs.getInt('premium_popup_last') ?? 0;
+    const twoDays = 2 * 24 * 60 * 60 * 1000;
 
-    final now =
-        DateTime.now().millisecondsSinceEpoch;
-
-    const twoDays =
-        2 * 24 * 60 * 60 * 1000;
-
+    // Show max 3 times total.
     if (count >= 3) return;
 
+    // Each popup must be at least 2 days apart.
     if (last != 0 && now - last < twoDays) return;
 
     await prefs.setInt(
@@ -902,8 +911,11 @@ class _HomeScreenState extends State<HomeScreen> {
       now,
     );
 
+    if (!mounted || isSubscriber) return;
+
     showPremiumPopup();
   }
+
 
   void showPremiumPopup() {
     if (isSubscriber) {
