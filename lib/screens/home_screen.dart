@@ -2205,65 +2205,90 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Column(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: _statBlock(
-                  title: 'Search Credits',
-                  value: isSubscriber ? '∞' : '$safeLeft',
-                  subtitle: isSubscriber ? 'unlimited' : 'searches left',
-                  color: const Color(0xFFFACC15),
-                ),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 12,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(
+                color: const Color(0xFFFACC15).withOpacity(0.38),
+                width: 1.2,
               ),
-              _divider(),
-              Expanded(
-                child: Column(
-                  children: [
-                    Text(
-                      isSubscriber ? '100%' : '${(percent * 100).round()}%',
-                      style: const TextStyle(
-                        fontSize: 23,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Remaining',
-                      style: TextStyle(
-                        color: Color(0xFFD1D5DB),
-                        fontSize: 13,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(999),
-                      child: LinearProgressIndicator(
-                        minHeight: 8,
-                        value: isSubscriber ? 1 : percent,
-                        backgroundColor: Colors.white.withOpacity(0.18),
-                        valueColor: const AlwaysStoppedAnimation<Color>(
-                          Color(0xFFFACC15),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _statBlock(
+                    title: 'Search Credits',
+                    value: isSubscriber ? '∞' : '$safeLeft',
+                    subtitle: isSubscriber ? 'unlimited' : 'free left',
+                    color: const Color(0xFFFACC15),
+                  ),
+                ),
+                _divider(),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        isSubscriber ? '100%' : '${(percent * 100).round()}%',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFFFACC15),
+                          height: 1.0,
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 5),
+                      const Text(
+                        'Remaining',
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Color(0xFFD1D5DB),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          height: 1.0,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(999),
+                        child: LinearProgressIndicator(
+                          minHeight: 7,
+                          value: isSubscriber ? 1 : percent,
+                          backgroundColor: Colors.white.withOpacity(0.16),
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                            Color(0xFFFACC15),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              _divider(),
-              Expanded(
-                child: _premiumStatBlock(),
-              ),
-            ],
+                _divider(),
+                Expanded(
+                  child: _premiumStatBlock(),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 14),
+          buildWatchAdCreditRow(),
+          const SizedBox(height: 18),
           buildAdBanner(),
           const SizedBox(height: 20),
-          buildWatchAdCreditRow(),
         ],
       ),
     );
   }
+
 
   Widget _statBlock({
     required String title,
@@ -2271,70 +2296,47 @@ class _HomeScreenState extends State<HomeScreen> {
     required String subtitle,
     required Color color,
   }) {
-    return Column(
-      children: [
-        Text(
-          title,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 13,
-            color: Color(0xFFD1D5DB),
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          value,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.w900,
-            color: color,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          subtitle,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Color(0xFFCBD5E1),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _premiumStatBlock() {
-    return InkWell(
-      borderRadius: BorderRadius.circular(14),
-      onTap: isSubscriber ? showPremiumNoAdsMessage : showPremiumPopup,
+    return SizedBox(
+      height: 82,
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text(
-            'Premium',
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 11,
+              color: Color(0xFFD1D5DB),
+              fontWeight: FontWeight.w700,
+              height: 1.0,
+            ),
+          ),
+          const SizedBox(height: 7),
+          Text(
+            value,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              color: color,
+              height: 1.0,
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'No Ads',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w900,
-              color: Color(0xFFFACC15),
-            ),
-          ),
-          const SizedBox(height: 4),
           Text(
-            isSubscriber ? 'active' : 'tap to upgrade',
-            style: TextStyle(
+            subtitle,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
               fontSize: 11,
-              color: Colors.white.withOpacity(.65),
+              color: Color(0xFFCBD5E1),
+              fontWeight: FontWeight.w600,
+              height: 1.0,
             ),
           ),
         ],
@@ -2342,12 +2344,65 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _premiumStatBlock() {
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: isSubscriber ? showPremiumNoAdsMessage : showPremiumPopup,
+      child: SizedBox(
+        height: 82,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              'Premium',
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFFFACC15),
+                height: 1.0,
+              ),
+            ),
+            const SizedBox(height: 7),
+            const Text(
+              'No Ads',
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFFE5E7EB),
+                height: 1.0,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              isSubscriber ? 'active' : 'tap upgrade',
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 10,
+                color: Colors.white.withOpacity(.70),
+                fontWeight: FontWeight.w600,
+                height: 1.0,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _divider() {
     return Container(
       width: 1,
-      height: 72,
-      margin: const EdgeInsets.symmetric(horizontal: 10),
-      color: Colors.white.withOpacity(0.12),
+      height: 66,
+      margin: const EdgeInsets.symmetric(horizontal: 8),
+      color: Colors.white.withOpacity(0.16),
     );
   }
 
@@ -2360,37 +2415,20 @@ class _HomeScreenState extends State<HomeScreen> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  disabled
-                      ? '👑 Premium active: no ads needed'
-                      : '▶ Watch Ad = +2 free searches',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: disabled
-                        ? const Color(0xFFFACC15).withOpacity(.86)
-                        : Colors.white.withOpacity(.82),
-                    fontSize: 13,
-                    height: 1.0,
-                    fontWeight: disabled ? FontWeight.w800 : FontWeight.w400,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  disabled ? 'Unlimited searches are already unlocked' : '👑 Premium = Unlimited',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(.82),
-                    fontSize: 13,
-                    height: 1.0,
-                  ),
-                ),
-              ],
+            child: Text(
+              disabled
+                  ? '👑 Premium active: unlimited searches'
+                  : '▶ Watch Ad = +2 free searches',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: disabled
+                    ? const Color(0xFFFACC15).withOpacity(.90)
+                    : Colors.white.withOpacity(.86),
+                fontSize: 13,
+                height: 1.15,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -2399,14 +2437,18 @@ class _HomeScreenState extends State<HomeScreen> {
             child: ElevatedButton.icon(
               onPressed: disabled ? showPremiumNoAdsMessage : watchAdMock,
               icon: Icon(
-                disabled ? Icons.workspace_premium_rounded : Icons.play_arrow_rounded,
+                disabled
+                    ? Icons.workspace_premium_rounded
+                    : Icons.play_arrow_rounded,
                 size: 18,
               ),
               label: Text(
-                disabled ? 'No Ads Active' : 'Watch Ad (+2)',
+                disabled ? 'No Ads' : 'Watch Ad +2',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
               style: ElevatedButton.styleFrom(
@@ -2418,7 +2460,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     : Colors.white,
                 disabledBackgroundColor: const Color(0xFF374151),
                 disabledForegroundColor: const Color(0xFFFACC15),
-                padding: const EdgeInsets.symmetric(horizontal: 14),
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 13),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
@@ -2429,6 +2472,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
 
   Widget buildAdBanner() {
     if (isSubscriber) {
