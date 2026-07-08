@@ -176,9 +176,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> pickImage() async {
+    // Web parity: do not request imageQuality here.
+    // Passing imageQuality can make iOS/Flutter recompress the selected image,
+    // which may change the visual embedding compared with the web upload.
     final file = await picker.pickImage(
       source: ImageSource.gallery,
-      imageQuality: 90,
     );
 
     if (file == null) return;
@@ -1412,6 +1414,19 @@ class _HomeScreenState extends State<HomeScreen> {
     return item.postUrl.trim();
   }
 
+  String quickChecksum(List<int> bytes) {
+    // Lightweight deterministic checksum for comparing app vs web uploads in logs
+    // without adding a new package dependency.
+    var hash = 0x811C9DC5;
+
+    for (final byte in bytes) {
+      hash ^= byte;
+      hash = (hash * 0x01000193) & 0xFFFFFFFF;
+    }
+
+    return hash.toRadixString(16).padLeft(8, '0');
+  }
+
   void showAnalysisPopup() {
     if (!mounted || analysisDialogVisible) return;
 
@@ -1589,20 +1604,9 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    final imagePath = selectedImage!.path;
+    final imageFile = selectedImage!;
+    final imagePath = imageFile.path;
     final levelValue = selectedLevel?.trim() ?? '';
-
-    final sameSearch =
-        lastSearchImagePath == imagePath && lastSearchLevel == levelValue;
-
-    if (sameSearch) {
-      searchPage++;
-    } else {
-      searchPage = 1;
-      lastSearchImagePath = imagePath;
-      lastSearchLevel = levelValue;
-      shownResultKeys.clear();
-    }
 
     setState(() {
       loading = true;
@@ -1612,31 +1616,48 @@ class _HomeScreenState extends State<HomeScreen> {
     showAnalysisPopup();
 
     try {
-      final params = <String, String>{
-        'page': searchPage.toString(),
-      };
+      /*
+        Web parity rule:
+        - Do not resize.
+        - Do not crop.
+        - Do not rotate.
+        - Do not recompress JPEG/PNG/WebP.
+        - Send the original file bytes selected from the gallery.
+
+        This makes the iOS request match the web request as closely as possible.
+      */
+      final imageBytes = await imageFile.readAsBytes();
+
+      final params = <String, String>{};
 
       // Auto Detect is the default. Only send level when the user manually chooses one.
       if (levelValue.isNotEmpty) {
         params['level'] = levelValue;
       }
 
-      if (shownResultKeys.isNotEmpty) {
-        params['exclude'] = shownResultKeys.join(',');
-      }
-
       final uri = Uri.parse(
         'https://api.cocbasepro.com/ai/search',
       ).replace(
-        queryParameters: params,
+        queryParameters: params.isEmpty ? null : params,
       );
+
+      debugPrint('AI_SEARCH_URL=$uri');
+      debugPrint("AI_SELECTED_LEVEL=${levelValue.isEmpty ? 'AUTO' : levelValue}");
+      debugPrint('AI_UPLOAD_PATH=$imagePath');
+      debugPrint('AI_UPLOAD_BYTES=${imageBytes.length}');
+      debugPrint('AI_UPLOAD_CHECKSUM=${quickChecksum(imageBytes)}');
 
       final request = http.MultipartRequest('POST', uri);
 
+      request.headers['User-Agent'] = 'AIBaseFinder-iOS';
+
       request.files.add(
-        await http.MultipartFile.fromPath(
+        http.MultipartFile.fromBytes(
           'file',
-          imagePath,
+          imageBytes,
+          filename: imageFile.uri.pathSegments.isNotEmpty
+              ? imageFile.uri.pathSegments.last
+              : 'base_image.jpg',
         ),
       );
 
@@ -1646,12 +1667,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final body = await streamedResponse.stream.bytesToString();
 
+      debugPrint('AI_RESPONSE_CODE=${streamedResponse.statusCode}');
+      debugPrint('AI_RESPONSE_BYTES=${body.length}');
+
       if (streamedResponse.statusCode != 200) {
         throw Exception('Server error ${streamedResponse.statusCode}');
       }
 
       final data = jsonDecode(body);
       currentSearchId = data['searchId']?.toString() ?? '';
+
+      debugPrint("AI_RESULT_TARGET_LEVEL=${data['targetLevel']}");
+      debugPrint("AI_RESULT_DETECTED_LEVEL=${data['detectedLevel']}");
+      debugPrint("AI_RESULT_LEVEL_SOURCE=${data['levelSource']}");
+      debugPrint("AI_RESULT_LEVEL_CONFIDENCE=${data['levelConfidence']}");
+
       final list = data['results'] as List<dynamic>? ?? [];
 
       results = list
@@ -1662,13 +1692,25 @@ class _HomeScreenState extends State<HomeScreen> {
       )
           .toList();
 
-      for (final item in results) {
-        final key = resultUniqueKey(item);
-
-        if (key.isNotEmpty) {
-          shownResultKeys.add(key);
-        }
+      if (results.isNotEmpty) {
+        final top = results.first;
+        debugPrint('AI_TOP1_TITLE=${top.title}');
+        debugPrint('AI_TOP1_LEVEL=${top.level}');
+        debugPrint('AI_TOP1_SCORE=${top.score}');
+        debugPrint('AI_TOP1_ID=${top.id}');
       }
+
+      // Keep these values only for debug/UI compatibility.
+      searchPage = 1;
+      lastSearchImagePath = imagePath;
+      lastSearchLevel = levelValue;
+      shownResultKeys
+        ..clear()
+        ..addAll(
+          results
+              .map(resultUniqueKey)
+              .where((key) => key.trim().isNotEmpty),
+        );
 
       if (results.isEmpty && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1697,12 +1739,17 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> openBase(BaseResult item) async {
     final isPremiumBase = item.premium == true;
 
-    if (isPremiumBase && !isSubscriber) {
-      showPremiumBaseLockedDialog(item);
+    if (!isPremiumBase) {
+      await openBaseLink(item);
       return;
     }
 
-    await openBaseLink(item);
+    if (isSubscriber) {
+      await openBaseLink(item);
+      return;
+    }
+
+    showPremiumBaseLockedDialog(item);
   }
 
   void showPremiumBaseLockedDialog(BaseResult item) {
@@ -1719,11 +1766,15 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Container(
             padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
             decoration: BoxDecoration(
-              color: const Color(0xFFF8F5FF),
+              color: const Color(0xFF111827).withOpacity(0.98),
               borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: const Color(0xFFFACC15).withOpacity(0.42),
+                width: 1.2,
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.38),
+                  color: Colors.black.withOpacity(0.42),
                   blurRadius: 28,
                   offset: const Offset(0, 14),
                 ),
@@ -1735,16 +1786,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 Row(
                   children: [
                     Container(
-                      width: 46,
-                      height: 46,
+                      width: 48,
+                      height: 48,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFACC15).withOpacity(0.22),
-                        borderRadius: BorderRadius.circular(15),
+                        color: const Color(0xFFFACC15).withOpacity(0.18),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                       child: const Icon(
                         Icons.workspace_premium_rounded,
-                        color: Color(0xFFEAB308),
-                        size: 28,
+                        color: Color(0xFFFACC15),
+                        size: 30,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -1752,7 +1803,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Text(
                         'Premium Base',
                         style: TextStyle(
-                          color: Color(0xFF111827),
+                          color: Colors.white,
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
                         ),
@@ -1764,65 +1815,59 @@ class _HomeScreenState extends State<HomeScreen> {
                       onPressed: () => Navigator.pop(context),
                       icon: const Icon(
                         Icons.close_rounded,
-                        color: Color(0xFF374151),
+                        color: Color(0xFFE5E7EB),
                         size: 26,
                       ),
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 14),
-
                 const Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'This matched base is premium.',
+                    'Unlock the original Clash copy link',
                     style: TextStyle(
-                      color: Color(0xFF111827),
+                      color: Colors.white,
                       fontSize: 17,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 8),
-
-                Text(
-                  'Upgrade to unlock premium base links instantly, or watch a short ad to get this base link.',
+                const Text(
+                  'Premium members open this base instantly. Free users can watch one rewarded video to unlock this premium base link.',
                   style: TextStyle(
-                    color: Colors.black.withOpacity(0.62),
+                    color: Color(0xFFE5E7EB),
                     fontSize: 14,
                     height: 1.35,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-
                 const SizedBox(height: 16),
-
                 Row(
                   children: [
                     Expanded(
-                      child: OutlinedButton(
+                      child: OutlinedButton.icon(
                         onPressed: () {
                           Navigator.pop(context);
                           showRewardAdForPremiumBase(item);
                         },
+                        icon: const Icon(Icons.play_arrow_rounded),
+                        label: const Text(
+                          'Watch Ad',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF6D28D9),
-                          side: const BorderSide(
-                            color: Color(0xFF7C3AED),
-                            width: 1.4,
+                          foregroundColor: Colors.white,
+                          side: BorderSide(
+                            color: Colors.white.withOpacity(0.28),
                           ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(15),
                           ),
                           padding: const EdgeInsets.symmetric(vertical: 13),
-                        ),
-                        child: const Text(
-                          'Watch Ad',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                          ),
                         ),
                       ),
                     ),
@@ -1851,15 +1896,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 8),
-
                 TextButton(
                   onPressed: () => Navigator.pop(context),
                   child: const Text(
                     'Cancel',
                     style: TextStyle(
-                      color: Color(0xFF6B7280),
+                      color: Color(0xFFCBD5E1),
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -1871,7 +1914,6 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
   }
-
 
   String cleanLayoutLink(String value) {
     return value
@@ -1933,6 +1975,139 @@ class _HomeScreenState extends State<HomeScreen> {
     return anyNumber?.group(0);
   }
 
+  bool isBuyMeACoffeeLink(String value) {
+    return value.toLowerCase().contains('buymeacoffee.com/cocbase/e/');
+  }
+
+  bool isClashLayoutLink(String value) {
+    final lower = value.toLowerCase();
+    return lower.contains('link.clashofclans.com') &&
+        lower.contains('openlayout');
+  }
+
+  String normalizePremiumMapKey(String value) {
+    var normalized = cleanLayoutLink(value)
+        .replaceFirst(RegExp(r'^https?://', caseSensitive: false), '')
+        .replaceFirst(RegExp(r'^www\.', caseSensitive: false), '')
+        .toLowerCase();
+
+    while (normalized.isNotEmpty &&
+        ('/ \"\')]}'.contains(normalized[normalized.length - 1]))) {
+      normalized = normalized.substring(0, normalized.length - 1);
+    }
+
+    return normalized;
+  }
+
+  void addPremiumMapEntry(
+      Map<String, String> out,
+      String key,
+      String value,
+      ) {
+    final cleanKey = cleanLayoutLink(key);
+    final cleanValue = cleanLayoutLink(value);
+
+    if (cleanKey.isEmpty || cleanValue.isEmpty) return;
+
+    String bmc = '';
+    String clash = '';
+
+    if (isBuyMeACoffeeLink(cleanKey) && isClashLayoutLink(cleanValue)) {
+      bmc = cleanKey;
+      clash = cleanValue;
+    } else if (isBuyMeACoffeeLink(cleanValue) && isClashLayoutLink(cleanKey)) {
+      bmc = cleanValue;
+      clash = cleanKey;
+    } else if (RegExp(r'^\d+$').hasMatch(cleanKey) &&
+        isClashLayoutLink(cleanValue)) {
+      out[cleanKey] = cleanValue;
+      return;
+    } else {
+      return;
+    }
+
+    out[bmc] = clash;
+    out[normalizePremiumMapKey(bmc)] = clash;
+
+    final id = extractPremiumMapKey(bmc);
+
+    if (id != null && id.isNotEmpty) {
+      out[id] = clash;
+    }
+  }
+
+  String firstStringFromMap(
+      Map<dynamic, dynamic> map,
+      List<String> keys,
+      ) {
+    for (final key in keys) {
+      final value = map[key];
+
+      if (value != null && value.toString().trim().isNotEmpty) {
+        return value.toString();
+      }
+    }
+
+    return '';
+  }
+
+  void collectPremiumMapEntries(
+      dynamic source,
+      Map<String, String> out,
+      ) {
+    if (source is Map) {
+      source.forEach((key, value) {
+        if (value is String || value is num || value is bool) {
+          addPremiumMapEntry(out, key.toString(), value.toString());
+          return;
+        }
+
+        if (value is Map) {
+          final bmc = firstStringFromMap(
+            value,
+            [
+              'premiumLink',
+              'buymeacoffee',
+              'bmc',
+              'bmcLink',
+              'accessLink',
+              'paidLink',
+              'link',
+            ],
+          );
+
+          final clash = firstStringFromMap(
+            value,
+            [
+              'originalCopyLink',
+              'originalLink',
+              'clashLink',
+              'copyLink',
+              'baseLink',
+              'original',
+              'url',
+            ],
+          );
+
+          addPremiumMapEntry(out, bmc, clash);
+          collectPremiumMapEntries(value, out);
+          return;
+        }
+
+        if (value is List) {
+          collectPremiumMapEntries(value, out);
+        }
+      });
+      return;
+    }
+
+    if (source is List) {
+      for (final item in source) {
+        collectPremiumMapEntries(item, out);
+      }
+    }
+  }
+
   Future<void> loadPremiumLinkMap({bool force = false}) async {
     if (premiumMapLoaded && !force) return;
 
@@ -1951,24 +2126,14 @@ class _HomeScreenState extends State<HomeScreen> {
       }
 
       final decoded = jsonDecode(response.body);
+      final parsed = <String, String>{};
 
-      if (decoded is! Map) {
-        debugPrint('Premium map is not a JSON object');
-        return;
-      }
+      collectPremiumMapEntries(decoded, parsed);
 
-      premiumLinkMap = decoded.map(
-            (key, value) {
-          return MapEntry(
-            key.toString(),
-            cleanLayoutLink(value.toString()),
-          );
-        },
-      );
+      premiumLinkMap = parsed;
+      premiumMapLoaded = parsed.isNotEmpty;
 
-      premiumMapLoaded = true;
-
-      debugPrint('Premium map loaded: ${premiumLinkMap.length} links');
+      debugPrint('Premium map loaded: ${premiumLinkMap.length} keys');
     } catch (e) {
       debugPrint('Premium map error: $e');
     }
@@ -1985,7 +2150,7 @@ class _HomeScreenState extends State<HomeScreen> {
       return rawLink;
     }
 
-    if (rawLink.contains('link.clashofclans.com')) {
+    if (isClashLayoutLink(rawLink)) {
       return cleanLayoutLink(rawLink);
     }
 
@@ -2003,7 +2168,8 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
 
-    final directMappedLink = premiumLinkMap[rawLink];
+    final directMappedLink = premiumLinkMap[rawLink] ??
+        premiumLinkMap[normalizePremiumMapKey(rawLink)];
 
     if (directMappedLink != null && directMappedLink.trim().isNotEmpty) {
       return cleanLayoutLink(directMappedLink);
@@ -2073,6 +2239,12 @@ class _HomeScreenState extends State<HomeScreen> {
         pendingPremiumBase = null;
 
         if (itemToOpen != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Premium base unlocked'),
+            ),
+          );
+
           await openBaseLink(itemToOpen);
         }
       },
