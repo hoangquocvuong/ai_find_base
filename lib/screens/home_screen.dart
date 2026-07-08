@@ -2344,14 +2344,6 @@ class _HomeScreenState extends State<HomeScreen> {
             if (!isSubscriber) ...[
               const SizedBox(height: 12),
               buildWatchAdCreditRow(),
-              const SizedBox(height: 12),
-              Divider(
-                color: Colors.white.withOpacity(0.13),
-                height: 1,
-                thickness: 1,
-              ),
-              const SizedBox(height: 12),
-              buildAdBanner(),
             ],
           ],
         ),
@@ -2667,6 +2659,30 @@ class _HomeScreenState extends State<HomeScreen> {
           child: AdWidget(ad: bannerAd!),
         ),
       ),
+    );
+  }
+
+
+  Widget buildImageAreaAdBanner() {
+    if (isSubscriber) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: 8,
+        vertical: 8,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.12),
+          width: 1,
+        ),
+      ),
+      child: buildAdBanner(),
     );
   }
 
@@ -3890,6 +3906,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     behavior: HitTestBehavior.opaque,
                     child: ImagePickerBox(image: selectedImage),
                   ),
+
+                  // AdMob banner is placed directly under the selected image box.
+                  // This keeps the subscription/stats panel clean and makes the ad position predictable.
+                  if (!isSubscriber) ...[
+                    const SizedBox(height: 14),
+                    buildImageAreaAdBanner(),
+                  ],
 
                   // ✅ Choose Image + Reset nằm cùng 1 hàng cho gọn trên mobile
                   const SizedBox(height: 18),
