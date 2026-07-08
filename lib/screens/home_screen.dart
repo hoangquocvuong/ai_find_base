@@ -216,15 +216,6 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    if (selectedLevel == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please choose TH/BH/CH level for best accuracy'),
-        ),
-      );
-      return;
-    }
-
     /*
       Final Search Similar logic:
       - Search button never shows interstitial ads.
@@ -884,6 +875,17 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
+  ProductDetails? productById(String id) {
+    for (final product in subscriptionProducts) {
+      if (product.id == id) {
+        return product;
+      }
+    }
+
+    return null;
+  }
+
   Future<void> maybeShowPremiumPopup() async {
     if (isSubscriber) return;
 
@@ -1587,17 +1589,8 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    if (selectedLevel == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please choose TH/BH/CH level for best accuracy'),
-        ),
-      );
-      return;
-    }
-
     final imagePath = selectedImage!.path;
-    final levelValue = selectedLevel!;
+    final levelValue = selectedLevel?.trim() ?? '';
 
     final sameSearch =
         lastSearchImagePath == imagePath && lastSearchLevel == levelValue;
@@ -1620,9 +1613,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final params = <String, String>{
-        'level': levelValue,
         'page': searchPage.toString(),
       };
+
+      // Auto Detect is the default. Only send level when the user manually chooses one.
+      if (levelValue.isNotEmpty) {
+        params['level'] = levelValue;
+      }
 
       if (shownResultKeys.isNotEmpty) {
         params['exclude'] = shownResultKeys.join(',');
@@ -2204,10 +2201,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget buildStatsPanel() {
+    final monthly = productById('aifindbase_premium_monthly');
+    final yearly = productById('aifindbase_premium_yearly');
     final safeLeft = freeSearchLeft < 0 ? 0 : freeSearchLeft;
-    final maxCredit = safeLeft > 10 ? safeLeft : 10;
-    final percent =
-    maxCredit == 0 ? 0.0 : (safeLeft / maxCredit).clamp(0.0, 1.0);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -2223,58 +2219,29 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
               children: [
                 Expanded(
                   child: _statBlock(
-                    title: 'Search Credits',
-                    value: isSubscriber ? '∞' : '$safeLeft',
-                    subtitle: isSubscriber ? 'unlimited' : 'free left',
+                    title: 'Verified Bases',
+                    value: '$totalBases+',
+                    subtitle: 'TH / BH / CH',
                     color: const Color(0xFFFACC15),
                   ),
                 ),
                 _divider(),
                 Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        isSubscriber ? '100%' : '${(percent * 100).round()}%',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
-                          color: Color(0xFFFACC15),
-                          height: 1.0,
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      const Text(
-                        'Remaining',
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: Color(0xFFD1D5DB),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          height: 1.0,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(999),
-                        child: LinearProgressIndicator(
-                          minHeight: 7,
-                          value: isSubscriber ? 1 : percent,
-                          backgroundColor: Colors.white.withOpacity(0.16),
-                          valueColor: const AlwaysStoppedAnimation<Color>(
-                            Color(0xFFFACC15),
-                          ),
-                        ),
-                      ),
-                    ],
+                  child: _statBlock(
+                    title: 'AI Mode',
+                    value: selectedLevel ?? 'Auto',
+                    subtitle: selectedLevel == null
+                        ? 'detect level'
+                        : 'manual filter',
+                    color: selectedLevel == null
+                        ? const Color(0xFF22D3EE)
+                        : const Color(0xFFFACC15),
                   ),
                 ),
                 _divider(),
@@ -2283,10 +2250,101 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
+
             const SizedBox(height: 14),
-            buildWatchAdCreditRow(),
+
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.13),
+                  width: 1,
+                ),
+              ),
+              child: isSubscriber
+                  ? Row(
+                children: const [
+                  Icon(
+                    Icons.workspace_premium_rounded,
+                    color: Color(0xFFFACC15),
+                    size: 24,
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Premium Active • Unlimited AI searches • No ads',
+                      style: TextStyle(
+                        color: Color(0xFFE5E7EB),
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w800,
+                        height: 1.25,
+                      ),
+                    ),
+                  ),
+                ],
+              )
+                  : Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'iOS Premium Subscription',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Color(0xFFFACC15),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _subscriptionMiniCard(
+                          title: 'Monthly',
+                          price: monthly?.price ?? '\$4.99',
+                          subtitle: 'Unlimited',
+                          icon: Icons.calendar_month_rounded,
+                          onTap: monthly == null
+                              ? showPremiumPopup
+                              : () => buySubscription(monthly),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _subscriptionMiniCard(
+                          title: 'Yearly',
+                          price: yearly?.price ?? '\$39.99',
+                          subtitle: 'Best value',
+                          icon: Icons.workspace_premium_rounded,
+                          highlighted: true,
+                          onTap: yearly == null
+                              ? showPremiumPopup
+                              : () => buySubscription(yearly),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Free searches left: $safeLeft • Watch an ad only when you need extra free searches.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.70),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      height: 1.25,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
             if (!isSubscriber) ...[
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
+              buildWatchAdCreditRow(),
+              const SizedBox(height: 12),
               Divider(
                 color: Colors.white.withOpacity(0.13),
                 height: 1,
@@ -2301,6 +2359,86 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _subscriptionMiniCard({
+    required String title,
+    required String price,
+    required String subtitle,
+    required IconData icon,
+    required VoidCallback onTap,
+    bool highlighted = false,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        height: 90,
+        padding: const EdgeInsets.symmetric(
+          horizontal: 10,
+          vertical: 10,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: highlighted
+                ? const Color(0xFFFACC15).withOpacity(0.65)
+                : Colors.white.withOpacity(0.18),
+            width: highlighted ? 1.4 : 1.1,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: highlighted
+                  ? const Color(0xFFFACC15)
+                  : const Color(0xFFCBD5E1),
+              size: 20,
+            ),
+            const SizedBox(height: 5),
+            Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w900,
+                height: 1.0,
+              ),
+            ),
+            const SizedBox(height: 5),
+            Text(
+              price,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: highlighted
+                    ? const Color(0xFFFACC15)
+                    : const Color(0xFFE5E7EB),
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
+                height: 1.0,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.66),
+                fontSize: 10.5,
+                fontWeight: FontWeight.w700,
+                height: 1.0,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _statBlock({
     required String title,
@@ -2766,61 +2904,121 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget buildLevelSelector() {
+    final bool autoMode = selectedLevel == null;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Choose Base Level',
+          'Search Mode',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w900,
           ),
         ),
         const SizedBox(height: 10),
-        InkWell(
-          onTap: openLevelPicker,
-          borderRadius: BorderRadius.circular(18),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 16,
-            ),
-            decoration: BoxDecoration(
-              color: const Color(0xFF111827).withOpacity(0.92),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: const Color(0xFFFACC15),
-                width: selectedLevel == null ? 1.6 : 1.8,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFFFACC15).withOpacity(0.14),
-                  blurRadius: 14,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    selectedLevel ?? 'Required: TH18, BH10, CH10...',
+        Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 52,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      if (selectedLevel != null) {
+                        selectedLevel = null;
+                        searchPage = 1;
+                        lastSearchLevel = null;
+                        shownResultKeys.clear();
+                      }
+                    });
+                  },
+                  icon: Icon(
+                    Icons.auto_awesome_rounded,
+                    size: 19,
+                    color: autoMode
+                        ? Colors.black
+                        : const Color(0xFF22D3EE),
+                  ),
+                  label: const Text(
+                    'Auto',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: selectedLevel == null
-                          ? const Color(0xFFCBD5E1)
-                          : Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor:
+                    autoMode ? const Color(0xFFFACC15) : Colors.transparent,
+                    foregroundColor:
+                    autoMode ? Colors.black : Colors.white,
+                    side: BorderSide(
+                      color: autoMode
+                          ? const Color(0xFFFACC15)
+                          : const Color(0xFF22D3EE).withOpacity(0.45),
+                      width: 1.3,
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
                     ),
                   ),
                 ),
-                const Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  color: Color(0xFFFACC15),
-                ),
-              ],
+              ),
             ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: SizedBox(
+                height: 52,
+                child: OutlinedButton.icon(
+                  onPressed: openLevelPicker,
+                  icon: Icon(
+                    Icons.tune_rounded,
+                    size: 19,
+                    color: autoMode
+                        ? const Color(0xFFFACC15)
+                        : Colors.black,
+                  ),
+                  label: Text(
+                    selectedLevel ?? 'Level',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor:
+                    autoMode ? Colors.transparent : const Color(0xFFFACC15),
+                    foregroundColor:
+                    autoMode ? Colors.white : Colors.black,
+                    side: BorderSide(
+                      color: const Color(0xFFFACC15).withOpacity(0.55),
+                      width: 1.3,
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 9),
+        Text(
+          autoMode
+              ? 'Auto Detect is recommended. The app will detect TH/BH/CH from the image.'
+              : 'Manual filter is active. Tap Auto to let AI detect the level again.',
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.70),
+            fontSize: 12.5,
+            height: 1.35,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ],
