@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:crypto/crypto.dart';
 import 'dart:async';
 import 'package:in_app_purchase/in_app_purchase.dart';
 
@@ -1414,17 +1415,8 @@ class _HomeScreenState extends State<HomeScreen> {
     return item.postUrl.trim();
   }
 
-  String quickChecksum(List<int> bytes) {
-    // Lightweight deterministic checksum for comparing app vs web uploads in logs
-    // without adding a new package dependency.
-    var hash = 0x811C9DC5;
-
-    for (final byte in bytes) {
-      hash ^= byte;
-      hash = (hash * 0x01000193) & 0xFFFFFFFF;
-    }
-
-    return hash.toRadixString(16).padLeft(8, '0');
+  String sha256Checksum(List<int> bytes) {
+    return sha256.convert(bytes).toString();
   }
 
   void showAnalysisPopup() {
@@ -1628,6 +1620,10 @@ class _HomeScreenState extends State<HomeScreen> {
       */
       final imageBytes = await imageFile.readAsBytes();
 
+      debugPrint('==============================');
+      debugPrint('AI SEARCH REQUEST');
+      debugPrint('==============================');
+
       final params = <String, String>{};
 
       // Auto Detect is the default. Only send level when the user manually chooses one.
@@ -1645,7 +1641,7 @@ class _HomeScreenState extends State<HomeScreen> {
       debugPrint("AI_SELECTED_LEVEL=${levelValue.isEmpty ? 'AUTO' : levelValue}");
       debugPrint('AI_UPLOAD_PATH=$imagePath');
       debugPrint('AI_UPLOAD_BYTES=${imageBytes.length}');
-      debugPrint('AI_UPLOAD_CHECKSUM=${quickChecksum(imageBytes)}');
+      debugPrint('AI_UPLOAD_SHA256=${sha256Checksum(imageBytes)}');
 
       final request = http.MultipartRequest('POST', uri);
 
@@ -1667,6 +1663,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final body = await streamedResponse.stream.bytesToString();
 
+      debugPrint('==============================');
+      debugPrint('AI SEARCH RESPONSE');
+      debugPrint('==============================');
       debugPrint('AI_RESPONSE_CODE=${streamedResponse.statusCode}');
       debugPrint('AI_RESPONSE_BYTES=${body.length}');
 
