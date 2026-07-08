@@ -2556,72 +2556,147 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget buildWatchAdCreditRow() {
     final bool disabled = isSubscriber;
+    final int safeLeft = freeSearchLeft < 0 ? 0 : freeSearchLeft;
 
     return KeyedSubtree(
       key: watchAdCreditKey,
-      child: Center(
-        child: SizedBox(
-          height: 48,
-          width: disabled ? 190 : 176,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: disabled
-                  ? const LinearGradient(
-                colors: [
-                  Color(0xFF374151),
-                  Color(0xFF1F2937),
-                ],
-              )
-                  : const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF8B5CF6),
-                  Color(0xFF6D28D9),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: (disabled
-                      ? const Color(0xFF111827)
-                      : const Color(0xFF7C3AED))
-                      .withOpacity(0.30),
-                  blurRadius: 16,
-                  offset: const Offset(0, 7),
-                ),
+      child: InkWell(
+        onTap: disabled ? showPremiumNoAdsMessage : watchAdMock,
+        borderRadius: BorderRadius.circular(22),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
+          decoration: BoxDecoration(
+            gradient: disabled
+                ? LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                const Color(0xFF374151).withOpacity(0.95),
+                const Color(0xFF111827).withOpacity(0.98),
+              ],
+            )
+                : const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFF6D28D9),
+                Color(0xFF7C3AED),
+                Color(0xFFFACC15),
               ],
             ),
-            child: ElevatedButton.icon(
-              onPressed: disabled ? showPremiumNoAdsMessage : watchAdMock,
-              icon: Icon(
-                disabled
-                    ? Icons.workspace_premium_rounded
-                    : Icons.play_arrow_rounded,
-                size: 19,
-              ),
-              label: Text(
-                disabled ? 'No Ads Active' : 'Watch Ad +2',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                foregroundColor: disabled
-                    ? const Color(0xFFFACC15)
-                    : Colors.white,
-                shadowColor: Colors.transparent,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: disabled
+                  ? const Color(0xFFFACC15).withOpacity(0.24)
+                  : const Color(0xFFFACC15).withOpacity(0.55),
+              width: 1.2,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: (disabled
+                    ? const Color(0xFF111827)
+                    : const Color(0xFF7C3AED))
+                    .withOpacity(0.32),
+                blurRadius: 20,
+                offset: const Offset(0, 9),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(disabled ? 0.20 : 0.24),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.18),
+                    width: 1,
+                  ),
+                ),
+                child: Icon(
+                  disabled
+                      ? Icons.workspace_premium_rounded
+                      : Icons.play_circle_fill_rounded,
+                  color: disabled ? const Color(0xFFFACC15) : Colors.white,
+                  size: 30,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      disabled ? 'Premium Active' : '+2 Free Searches',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        height: 1.05,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      disabled
+                          ? 'Unlimited searches and no ads are enabled.'
+                          : 'Watch one short ad to add 2 extra AI searches. You have $safeLeft left.',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.88),
+                        fontSize: 12.2,
+                        fontWeight: FontWeight.w700,
+                        height: 1.25,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: disabled
+                      ? const Color(0xFFFACC15).withOpacity(0.13)
+                      : Colors.white,
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      disabled
+                          ? Icons.check_circle_rounded
+                          : Icons.play_arrow_rounded,
+                      size: 18,
+                      color: disabled
+                          ? const Color(0xFFFACC15)
+                          : const Color(0xFF6D28D9),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      disabled ? 'Active' : 'Watch',
+                      style: TextStyle(
+                        color: disabled
+                            ? const Color(0xFFFACC15)
+                            : const Color(0xFF6D28D9),
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -2668,21 +2743,13 @@ class _HomeScreenState extends State<HomeScreen> {
       return const SizedBox.shrink();
     }
 
-    return Container(
+    // Clean AdMob placement: no border, no extra frame.
+    // The native AdWidget already provides the ad container.
+    return SizedBox(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 8,
-        vertical: 8,
+      child: Center(
+        child: buildAdBanner(),
       ),
-      decoration: BoxDecoration(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.12),
-          width: 1,
-        ),
-      ),
-      child: buildAdBanner(),
     );
   }
 
