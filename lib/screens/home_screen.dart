@@ -40,6 +40,19 @@ class _HomeScreenState extends State<HomeScreen> {
   final Set<String> shownResultKeys = {};
   bool analysisDialogVisible = false;
 
+  // V7.8 debug state: helps verify whether the app is really using Auto mode
+  // and whether the server response matches the web response.
+  String lastUploadSha256 = '';
+  int lastUploadBytes = 0;
+  String lastRequestUrl = '';
+  String lastDetectedLevel = '';
+  String lastTargetLevel = '';
+  String lastLevelSource = '';
+  double lastLevelConfidence = 0.0;
+  String lastTop1Title = '';
+  String lastTop1Level = '';
+  double lastTop1Score = 0.0;
+
   final GlobalKey aiResultsKey = GlobalKey();
 
   int totalBases = 2633;
@@ -188,6 +201,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
     setState(() {
       selectedImage = File(file.path);
+
+      // V7.8: Always return to real Auto Detect when a new image is selected.
+      // This prevents an old manual TH/BH/CH value from silently affecting the next search.
+      selectedLevel = null;
+
       results.clear();
       searchPage = 1;
       lastSearchImagePath = null;
@@ -206,6 +224,17 @@ class _HomeScreenState extends State<HomeScreen> {
       lastSearchImagePath = null;
       lastSearchLevel = null;
       shownResultKeys.clear();
+
+      lastUploadSha256 = '';
+      lastUploadBytes = 0;
+      lastRequestUrl = '';
+      lastDetectedLevel = '';
+      lastTargetLevel = '';
+      lastLevelSource = '';
+      lastLevelConfidence = 0.0;
+      lastTop1Title = '';
+      lastTop1Level = '';
+      lastTop1Score = 0.0;
     });
   }
 
@@ -1637,15 +1666,26 @@ class _HomeScreenState extends State<HomeScreen> {
         queryParameters: params.isEmpty ? null : params,
       );
 
+      final uploadSha256 = sha256Checksum(imageBytes);
+
       debugPrint('AI_SEARCH_URL=$uri');
       debugPrint("AI_SELECTED_LEVEL=${levelValue.isEmpty ? 'AUTO' : levelValue}");
       debugPrint('AI_UPLOAD_PATH=$imagePath');
       debugPrint('AI_UPLOAD_BYTES=${imageBytes.length}');
-      debugPrint('AI_UPLOAD_SHA256=${sha256Checksum(imageBytes)}');
+      debugPrint('AI_UPLOAD_SHA256=$uploadSha256');
+
+      lastRequestUrl = uri.toString();
+      lastUploadBytes = imageBytes.length;
+      lastUploadSha256 = uploadSha256;
 
       final request = http.MultipartRequest('POST', uri);
 
       request.headers['User-Agent'] = 'AIBaseFinder-iOS';
+
+      // Keep form level empty in Auto mode so the backend cannot receive a stale level_form.
+      if (levelValue.isEmpty) {
+        request.fields['level_form'] = '';
+      }
 
       request.files.add(
         http.MultipartFile.fromBytes(
@@ -1676,10 +1716,18 @@ class _HomeScreenState extends State<HomeScreen> {
       final data = jsonDecode(body);
       currentSearchId = data['searchId']?.toString() ?? '';
 
-      debugPrint("AI_RESULT_TARGET_LEVEL=${data['targetLevel']}");
-      debugPrint("AI_RESULT_DETECTED_LEVEL=${data['detectedLevel']}");
-      debugPrint("AI_RESULT_LEVEL_SOURCE=${data['levelSource']}");
-      debugPrint("AI_RESULT_LEVEL_CONFIDENCE=${data['levelConfidence']}");
+      lastTargetLevel = data['targetLevel']?.toString() ?? '';
+      lastDetectedLevel = data['detectedLevel']?.toString() ?? '';
+      lastLevelSource = data['levelSource']?.toString() ?? '';
+      lastLevelConfidence = double.tryParse(
+        data['levelConfidence']?.toString() ?? '0',
+      ) ??
+          0.0;
+
+      debugPrint("AI_RESULT_TARGET_LEVEL=$lastTargetLevel");
+      debugPrint("AI_RESULT_DETECTED_LEVEL=$lastDetectedLevel");
+      debugPrint("AI_RESULT_LEVEL_SOURCE=$lastLevelSource");
+      debugPrint("AI_RESULT_LEVEL_CONFIDENCE=$lastLevelConfidence");
 
       final list = data['results'] as List<dynamic>? ?? [];
 
@@ -1693,10 +1741,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (results.isNotEmpty) {
         final top = results.first;
+
+        lastTop1Title = top.title;
+        lastTop1Level = top.level;
+        lastTop1Score = top.score;
+
         debugPrint('AI_TOP1_TITLE=${top.title}');
         debugPrint('AI_TOP1_LEVEL=${top.level}');
         debugPrint('AI_TOP1_SCORE=${top.score}');
         debugPrint('AI_TOP1_ID=${top.id}');
+      } else {
+        lastTop1Title = '';
+        lastTop1Level = '';
+        lastTop1Score = 0.0;
       }
 
       // Keep these values only for debug/UI compatibility.
